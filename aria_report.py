@@ -19,10 +19,17 @@ from reportlab.platypus.flowables import Flowable
 import io
 import os
 
+class _EmptyTable(Spacer):
+    """Drop-in replacement for Table when data is empty. Has all Table styling methods as no-ops."""
+    def __init__(self):
+        super().__init__(1, 0)
+    def setStyle(self, *a, **kw): pass
+    def setParent(self, *a, **kw): pass
+
 def Table(data, *args, **kwargs):
-    """Safe Table wrapper — returns empty Spacer if data is empty."""
+    """Safe Table wrapper — returns empty stub if data is empty."""
     if not data or (isinstance(data, list) and len(data) == 0):
-        return Spacer(1, 0)
+        return _EmptyTable()
     return _OrigTable(data, *args, **kwargs)
 
 # ── Color palette — Black & White ─────────────────────────────────────────────
