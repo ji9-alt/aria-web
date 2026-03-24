@@ -223,8 +223,17 @@ function loadPortalData(){
         var s=d.services[i];
         if(seen[s.product_id]) continue;
         seen[s.product_id] = true;
-        var action = serviceActions[s.product_id] || '<span class="service-active">ACTIVE</span>';
-        html+='<div class="service-card"><div><h4>'+s.name+'</h4><p>Activated: '+new Date(s.activated_at).toLocaleDateString()+'</p></div>'
+        var action = serviceActions[s.product_id] || '';
+        var credits = s.credits;
+        var creditLabel = '';
+        if(credits === -1){
+          creditLabel = '<span style="color:#00cc44;font-size:10px;letter-spacing:1px;">UNLIMITED</span>';
+        } else if(credits > 0){
+          creditLabel = '<span style="color:#cccc00;font-size:10px;letter-spacing:1px;">'+credits+' CREDIT'+(credits>1?'S':'')+' LEFT</span>';
+        } else {
+          creditLabel = '<span style="color:#cc0000;font-size:10px;letter-spacing:1px;">NO CREDITS</span>';
+        }
+        html+='<div class="service-card"><div><h4>'+s.name+'</h4><p>Activated: '+new Date(s.activated_at).toLocaleDateString()+' &mdash; '+creditLabel+'</p></div>'
           +'<div style="display:flex;align-items:center;gap:12px;"><span class="service-active">ACTIVE</span>'+action+'</div></div>';
       }
       document.getElementById('servicesList').innerHTML=html;

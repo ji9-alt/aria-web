@@ -1670,6 +1670,19 @@ def list_files():
 
 @app.route("/analyze/static", methods=["POST"])
 def static_analysis():
+    # Consume scan credit for customers
+    token = request.cookies.get('aria_session')
+    if token:
+        try:
+            import db
+            session = db.get_session(token)
+            if session and session['role'] not in ('admin', 'analyst'):
+                if not db.consume_credit(session['user_id'], 'scan'):
+                    return jsonify({"error": "No scan credits remaining. Purchase more at /store"}), 403
+                print(f"[CREDIT] Consumed scan credit for user_id={session['user_id']}")
+        except Exception as e:
+            print(f"[CREDIT] Error checking scan credit: {e}")
+
     data = request.json
     filename = data.get("filename")
     analyst_notes = data.get("analyst_notes", "").strip()
@@ -1852,6 +1865,18 @@ def generate_pdf():
     Accepts the full analysis results JSON and returns a PDF report.
     Expected JSON body: the same structure returned by /analyze/static + aria_report field.
     """
+    # Consume report credit for customers
+    token = request.cookies.get('aria_session')
+    if token:
+        try:
+            import db
+            session = db.get_session(token)
+            if session and session['role'] not in ('admin', 'analyst'):
+                if not db.consume_credit(session['user_id'], 'report'):
+                    return jsonify({"error": "No report credits remaining. Purchase more at /store"}), 403
+                print(f"[CREDIT] Consumed report credit for user_id={session['user_id']}")
+        except Exception as e:
+            print(f"[CREDIT] Error checking report credit: {e}")
     try:
         sys.path.insert(0, BASE_DIR)
         import importlib

@@ -167,9 +167,14 @@ def ensure_extended_tables():
             product_id VARCHAR(32) NOT NULL,
             name VARCHAR(128) NOT NULL,
             status VARCHAR(20) DEFAULT 'active',
+            credits INTEGER DEFAULT -1,
             activated_at TIMESTAMP DEFAULT NOW()
         )
     """, fetch=False)
+    try:
+        query("ALTER TABLE user_services ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT -1", fetch=False)
+    except Exception:
+        pass
     query("""
         CREATE TABLE IF NOT EXISTS user_downloads (
             id SERIAL PRIMARY KEY,
@@ -212,15 +217,75 @@ def regenerate_apikey(user_id):
 #  SERVICE & DOWNLOAD PROVISIONING
 # ══════════════════════════════════════
 
+# Products that are one-time use (credits consumed per use)
+# -1 credits = unlimited (subscription services)
+CREDIT_PRODUCTS = {
+    "report": 1,    # 1 report per purchase
+    "scan": 1,      # 1 scan per purchase
+}
+
 def provision_service(user_id, product_id, name):
-    """Activate a service for a user."""
+    """Activate a service for a user. One-time products get credits, subscriptions are unlimited."""
     ensure_extended_tables()
+    credits = CREDIT_PRODUCTS.get(product_id, -1)
+
+    # For credit-based products, add credits to existing or create new
     existing = query_one(
-        "SELECT id FROM user_services WHERE user_id = %s AND product_id = %s AND status = 'active'",
+        "SELECT id, credits FROM user_services WHERE user_id = %s AND product_id = %s AND status = 'active'",
         (user_id, product_id))
-    if not existing:
-        query("INSERT INTO user_services (user_id, product_id, name) VALUES (%s, %s, %s)",
-              (user_id, product_id, name), fetch=False)
+    if existing:
+        if credits > 0:
+            # Add more credits to existing service
+            current = existing['credits'] if existing['credits'] and existing['credits'] > 0 else 0
+            query("UPDATE user_services SET credits = %s WHERE id = %s",
+                  (current + credits, existing['id']), fetch=False)
+        # Subscription already active, nothing to do
+    else:
+        query("INSERT INTO user_services (user_id, product_id, name, credits) VALUES (%s, %s, %s, %s)",
+              (user_id, product_id, name, credits), fetch=False)
+
+
+def consume_credit(user_id, product_id):
+    """Use one credit for a service. Returns True if credit was available, False if not.
+    Unlimited services (-1 credits) always return True."""
+    ensure_extended_tables()
+    row = query_one(
+        "SELECT id, credits FROM user_services WHERE user_id = %s AND product_id = %s AND status = 'active'",
+        (user_id, product_id))
+    if not row:
+        return False
+    credits = row['credits']
+    if credits == -1:
+        return True  # Unlimited subscription
+    if credits <= 0:
+        # No credits left — deactivate
+        query("UPDATE user_services SET status = 'expired' WHERE id = %s", (row['id'],), fetch=False)
+        return False
+    # Consume one credit
+    new_credits = credits - 1
+    if new_credits <= 0:
+        query("UPDATE user_services SET credits = 0, status = 'expired' WHERE id = %s", (row['id'],), fetch=False)
+    else:
+        query("UPDATE user_services SET credits = %s WHERE id = %s", (new_credits, row['id']), fetch=False)
+    return True
+
+
+def get_credits(user_id, product_id):
+    """Get remaining credits for a service. Returns -1 for unlimited, 0 if none."""
+    ensure_extended_tables()
+    row = query_one(
+        "SELECT credits FROM user_services WHERE user_id = %s AND product_id = %s AND status = 'active'",
+        (user_id, product_id))
+    if not row:
+        return 0
+    return row['credits']
+
+
+def has_any_access(user_id):
+    """Check if user has any active service (any purchase grants platform access)."""
+    ensure_extended_tables()
+    row = query_one("SELECT id FROM user_services WHERE user_id = %s AND status = 'active'", (user_id,))
+    return row is not None
 
 def provision_download(user_id, product_id, name):
     """Grant download access to a user."""
