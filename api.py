@@ -1970,6 +1970,10 @@ def serve_test():
     return send_from_directory(BASE_DIR, 'openclaw_test.html')
 
 @app.route("/")
+def serve_landing():
+    return send_from_directory(BASE_DIR, "index.html")
+
+@app.route("/dashboard")
 def serve_ui():
     return send_from_directory(BASE_DIR, "aria-lab.html")
 

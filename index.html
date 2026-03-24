@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA - Automated Response & Intelligence Agent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#0a0a0a;
+    color:#e0e0e0;
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Nav */
+  nav {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:20px 48px;
+    border-bottom:1px solid #1a1a1a;
+  }
+  .nav-brand { display:flex; align-items:center; gap:12px; }
+  .nav-logo {
+    font-size:24px; font-weight:900; letter-spacing:6px; color:#cc0000;
+    text-shadow:0 0 20px rgba(204,0,0,0.3);
+  }
+  .nav-tag { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; }
+  .nav-links { display:flex; gap:32px; align-items:center; }
+  .nav-links a {
+    color:#666; font-size:13px; text-decoration:none; letter-spacing:1px;
+    transition:color 0.2s;
+  }
+  .nav-links a:hover { color:#cc0000; }
+  .nav-btn {
+    background:#cc0000; color:white; border:none; padding:8px 20px;
+    font-size:12px; letter-spacing:2px; cursor:pointer; text-decoration:none;
+    font-family:'Inter',sans-serif; font-weight:600; transition:background 0.2s;
+  }
+  .nav-btn:hover { background:#aa0000; }
+
+  /* Hero */
+  .hero {
+    flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;
+    text-align:center; padding:80px 48px;
+    background:radial-gradient(ellipse at center, rgba(204,0,0,0.03) 0%, transparent 70%);
+  }
+  .hero-badge {
+    font-size:10px; letter-spacing:4px; color:#cc0000; text-transform:uppercase;
+    border:1px solid rgba(204,0,0,0.3); padding:6px 16px; margin-bottom:32px;
+  }
+  .hero h1 {
+    font-size:56px; font-weight:900; letter-spacing:2px; color:#fff;
+    line-height:1.1; margin-bottom:16px;
+  }
+  .hero h1 span { color:#cc0000; }
+  .hero p {
+    font-size:16px; color:#666; max-width:560px; line-height:1.7; margin-bottom:48px;
+  }
+  .hero-actions { display:flex; gap:16px; }
+  .btn-primary {
+    background:#cc0000; color:white; border:none; padding:14px 36px;
+    font-size:14px; letter-spacing:2px; cursor:pointer; text-decoration:none;
+    font-family:'Inter',sans-serif; font-weight:600; transition:all 0.2s;
+  }
+  .btn-primary:hover { background:#ee1111; box-shadow:0 0 30px rgba(204,0,0,0.3); }
+  .btn-outline {
+    background:transparent; color:#888; border:1px solid #333; padding:14px 36px;
+    font-size:14px; letter-spacing:2px; cursor:pointer; text-decoration:none;
+    font-family:'Inter',sans-serif; font-weight:600; transition:all 0.2s;
+  }
+  .btn-outline:hover { border-color:#cc0000; color:#cc0000; }
+
+  /* Features */
+  .features {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:#1a1a1a; border-top:1px solid #1a1a1a;
+  }
+  .feature {
+    background:#0a0a0a; padding:40px 32px; text-align:center;
+    transition:background 0.2s;
+  }
+  .feature:hover { background:#111; }
+  .feature-icon { font-size:28px; margin-bottom:16px; }
+  .feature h3 {
+    font-size:11px; letter-spacing:3px; text-transform:uppercase;
+    color:#cc0000; margin-bottom:8px;
+  }
+  .feature p { font-size:12px; color:#555; line-height:1.6; }
+
+  /* Stats */
+  .stats {
+    display:flex; justify-content:center; gap:64px; padding:48px;
+    border-top:1px solid #1a1a1a;
+  }
+  .stat { text-align:center; }
+  .stat-num { font-size:36px; font-weight:900; color:#cc0000; }
+  .stat-label { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+
+  /* Footer */
+  footer {
+    padding:24px 48px; border-top:1px solid #1a1a1a;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  footer p { font-size:11px; color:#333; letter-spacing:1px; }
+  .footer-status { display:flex; align-items:center; gap:8px; }
+  .status-dot {
+    width:6px; height:6px; border-radius:50%; background:#00cc44;
+    box-shadow:0 0 8px rgba(0,204,68,0.5);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .status-text { font-size:11px; color:#444; letter-spacing:1px; }
+
+  /* Login Modal */
+  .modal-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.85); z-index:1000;
+    justify-content:center; align-items:center;
+  }
+  .modal-overlay.active { display:flex; }
+  .modal {
+    background:#111; border:1px solid #222; padding:48px; width:380px;
+  }
+  .modal h2 {
+    font-size:12px; letter-spacing:4px; text-transform:uppercase;
+    color:#cc0000; margin-bottom:32px; text-align:center;
+  }
+  .modal input {
+    width:100%; background:#0a0a0a; border:1px solid #222; color:#e0e0e0;
+    padding:12px 16px; font-size:13px; font-family:'Inter',sans-serif;
+    margin-bottom:16px; outline:none; transition:border-color 0.2s;
+  }
+  .modal input:focus { border-color:#cc0000; }
+  .modal button {
+    width:100%; background:#cc0000; color:white; border:none; padding:14px;
+    font-size:13px; letter-spacing:2px; cursor:pointer;
+    font-family:'Inter',sans-serif; font-weight:600; transition:background 0.2s;
+  }
+  .modal button:hover { background:#ee1111; }
+  .modal .error { color:#cc0000; font-size:11px; margin-bottom:12px; display:none; text-align:center; }
+  .modal .close {
+    position:absolute; top:16px; right:20px; color:#555; cursor:pointer;
+    font-size:18px; background:none; border:none; width:auto; letter-spacing:0;
+  }
+  .modal .close:hover { color:#cc0000; }
+  .modal-inner { position:relative; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div>
+      <div class="nav-logo">ARIA</div>
+      <div class="nav-tag">Automated Response & Intelligence Agent</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#stats">Threat Intel</a>
+    <a href="/docs" target="_blank">API Docs</a>
+    <a class="nav-btn" href="#" onclick="openLogin()">SIGN IN</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">Enterprise Malware Analysis Platform</div>
+  <h1>Analyze threats.<br><span>Protect everything.</span></h1>
+  <p>Upload suspicious files for instant static analysis, AI-powered threat intelligence, YARA signature matching, and automated PDF reporting.</p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="#" onclick="openLogin()">START ANALYSIS</a>
+    <a class="btn-outline" href="#features">LEARN MORE</a>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="feature">
+    <div class="feature-icon">&#x1f50d;</div>
+    <h3>Static Analysis</h3>
+    <p>PE header parsing, import analysis, section entropy, overlay detection, authenticode verification</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">&#x1f9e0;</div>
+    <h3>AI Intelligence</h3>
+    <p>AI-powered threat assessment with MITRE ATT&CK mapping and behavioral classification</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">&#x1f6e1;</div>
+    <h3>YARA + CAPA</h3>
+    <p>Custom YARA signatures and CAPA capability detection for known malware families</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">&#x1f4c4;</div>
+    <h3>PDF Reports</h3>
+    <p>Professional threat intelligence reports with confidence scoring and IOC extraction</p>
+  </div>
+</section>
+
+<div class="stats" id="stats">
+  <div class="stat">
+    <div class="stat-num">47</div>
+    <div class="stat-label">YARA Rules Active</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">1,200+</div>
+    <div class="stat-label">CAPA Capabilities</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">100%</div>
+    <div class="stat-label">Offline Capable</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">&lt;5s</div>
+    <div class="stat-label">Avg Analysis Time</div>
+  </div>
+</div>
+
+<footer>
+  <p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p>
+  <div class="footer-status">
+    <div class="status-dot"></div>
+    <span class="status-text">ALL SYSTEMS OPERATIONAL</span>
+  </div>
+</footer>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div class="modal-inner">
+      <button class="close" onclick="closeLogin()">&times;</button>
+      <h2>Authenticate</h2>
+      <div class="error" id="loginError">Invalid credentials</div>
+      <input type="text" id="username" placeholder="Username" autocomplete="off">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="doLogin()">ACCESS PLATFORM</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openLogin() {
+  document.getElementById('loginModal').classList.add('active');
+  document.getElementById('username').focus();
+}
+function closeLogin() {
+  document.getElementById('loginModal').classList.remove('active');
+}
+document.getElementById('loginModal').addEventListener('click', function(e) {
+  if (e.target === this) closeLogin();
+});
+document.getElementById('password').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+function doLogin() {
+  var user = document.getElementById('username').value.trim();
+  var pass = document.getElementById('password').value;
+
+  // Simple client-side auth — replace with server-side later
+  var validUsers = {
+    'analyst': 'aria2026',
+    'admin': 'aria2026',
+    'demo': 'demo'
+  };
+
+  if (validUsers[user] && validUsers[user] === pass) {
+    // Store session
+    sessionStorage.setItem('aria_user', user);
+    sessionStorage.setItem('aria_role', user === 'admin' ? 'admin' : 'analyst');
+    window.location.href = '/test';
+  } else {
+    var err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(function() { err.style.display = 'none'; }, 3000);
+  }
+}
+
+// If already logged in, show logout in nav
+if (sessionStorage.getItem('aria_user')) {
+  var btn = document.querySelector('.nav-btn');
+  btn.textContent = 'GO TO PLATFORM';
+  btn.onclick = function() { window.location.href = '/test'; };
+}
+</script>
+
+</body>
+</html>
