@@ -10,13 +10,20 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
+                                 Table as _OrigTable,
                                  TableStyle, Image, PageBreak, HRFlowable,
                                  KeepTogether)
 from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.platypus.flowables import Flowable
 import io
 import os
+
+def Table(data, *args, **kwargs):
+    """Safe Table wrapper — returns empty Spacer if data is empty."""
+    if not data or (isinstance(data, list) and len(data) == 0):
+        return Spacer(1, 0)
+    return _OrigTable(data, *args, **kwargs)
 
 # ── Color palette — Black & White ─────────────────────────────────────────────
 BG_DARK      = colors.white
