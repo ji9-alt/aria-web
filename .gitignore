@@ -1,0 +1,8 @@
+tools-windows/
+capa-sigs/
+*.exe
+*.pyc
+__pycache__/
+incoming/
+cache/
+*.pem

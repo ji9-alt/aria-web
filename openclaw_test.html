@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OpenClaw — Test Interface</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0d0d0d; color:#e0e0e0; font-family:'Courier New',monospace; min-height:100vh; padding:30px; }
+  h1 { color:#cc0000; font-size:22px; letter-spacing:4px; margin-bottom:4px; }
+  .sub { color:#555; font-size:11px; letter-spacing:2px; margin-bottom:30px; }
+  hr { border:none; border-top:1px solid #222; margin:20px 0; }
+
+  .card { background:#141414; border:1px solid #222; border-radius:4px; padding:20px; margin-bottom:16px; }
+  .card h2 { color:#888; font-size:11px; letter-spacing:3px; margin-bottom:14px; text-transform:uppercase; }
+
+  .drop-zone { border:2px dashed #333; border-radius:4px; padding:40px; text-align:center; cursor:pointer; transition:border-color .2s; }
+  .drop-zone:hover, .drop-zone.dragover { border-color:#cc0000; }
+  .drop-zone input { display:none; }
+  .drop-zone .icon { font-size:32px; margin-bottom:10px; }
+  .drop-zone p { color:#555; font-size:12px; }
+  .drop-zone .filename { color:#cc0000; font-size:13px; margin-top:8px; font-weight:bold; }
+
+  .btn { background:#cc0000; color:white; border:none; padding:10px 24px; font-family:'Courier New',monospace; font-size:12px; letter-spacing:2px; cursor:pointer; border-radius:3px; text-transform:uppercase; transition:background .2s; }
+  .btn:hover { background:#aa0000; }
+  .btn:disabled { background:#333; color:#666; cursor:not-allowed; }
+  .btn-outline { background:transparent; border:1px solid #333; color:#888; }
+  .btn-outline:hover { border-color:#cc0000; color:#cc0000; background:transparent; }
+
+  .status { font-size:11px; padding:10px 14px; border-radius:3px; margin-top:10px; display:none; }
+  .status.info  { background:#1a1a2e; border:1px solid #333; color:#888; }
+  .status.ok    { background:#0d1a0d; border:1px solid #1a4d1a; color:#4caf50; }
+  .status.err   { background:#1a0d0d; border:1px solid #4d1a1a; color:#f44336; }
+
+  .log { background:#0a0a0a; border:1px solid #1a1a1a; border-radius:3px; padding:14px; height:200px; overflow-y:auto; font-size:11px; line-height:1.7; }
+  .log .line { color:#555; }
+  .log .line.ok { color:#4caf50; }
+  .log .line.err { color:#f44336; }
+  .log .line.warn { color:#ff9800; }
+  .log .line.info { color:#2196f3; }
+  .log .line.head { color:#cc0000; font-weight:bold; }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .result-item { background:#0a0a0a; border:1px solid #1a1a1a; border-radius:3px; padding:10px 12px; }
+  .result-item .label { color:#555; font-size:10px; letter-spacing:2px; margin-bottom:4px; }
+  .result-item .value { color:#e0e0e0; font-size:12px; word-break:break-all; }
+  .result-item .value.red { color:#cc0000; font-weight:bold; }
+  .result-item .value.green { color:#4caf50; }
+  .result-item .value.yellow { color:#ff9800; }
+
+  .verdict-banner { text-align:center; padding:20px; border-radius:4px; margin-bottom:16px; }
+  .verdict-banner.malicious { background:#1a0505; border:2px solid #cc0000; }
+  .verdict-banner.suspicious { background:#1a1205; border:2px solid #ff9800; }
+  .verdict-banner.benign { background:#051a05; border:2px solid #4caf50; }
+  .verdict-banner .vtext { font-size:28px; font-weight:bold; letter-spacing:6px; }
+  .verdict-banner .vsub { font-size:11px; color:#666; margin-top:6px; letter-spacing:2px; }
+
+  .score-bar-wrap { margin:10px 0; }
+  .score-bar-wrap .slabel { font-size:10px; color:#555; margin-bottom:4px; letter-spacing:2px; }
+  .score-bar { height:8px; background:#1a1a1a; border-radius:4px; overflow:hidden; }
+  .score-fill { height:100%; background:#cc0000; border-radius:4px; transition:width .6s; }
+
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .spinner { display:inline-block; width:10px; height:10px; border:2px solid #333; border-top-color:#cc0000; border-radius:50%; animation:spin .7s linear infinite; margin-right:8px; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  #pdf-btn { background:#1a4d1a; border:1px solid #2a7a2a; color:#4caf50; display:none; }
+  #pdf-btn:hover { background:#1f5c1f; }
+</style>
+</head>
+<body>
+
+<h1>OPENCLAW</h1>
+<div class="sub">MALWARE ANALYSIS — TEST INTERFACE</div>
+
+<!-- Upload -->
+<div class="card">
+  <h2>01 — Sample Upload</h2>
+  <div class="drop-zone" id="dropzone" onclick="document.getElementById('fileinput').click()">
+    <div class="icon">⬆</div>
+    <p>Drop file here or click to browse</p>
+    <div class="filename" id="fname"></div>
+    <input type="file" id="fileinput">
+  </div>
+  <div id="upload-status" class="status"></div>
+</div>
+
+<!-- Controls -->
+<div class="card">
+  <h2>02 — Analysis Controls</h2>
+  <div style="margin-bottom:12px;">
+    <label style="font-size:11px;color:#555;letter-spacing:2px;display:block;margin-bottom:6px;">ANALYST NOTES (OPTIONAL)</label>
+    <textarea id="analyst-notes" style="width:100%;background:#0a0a0a;border:1px solid #222;border-radius:3px;color:#e0e0e0;font-family:'Courier New',monospace;font-size:11px;padding:10px;resize:vertical;min-height:60px;outline:none;" placeholder="Add any context or observations..."></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn" id="analyze-btn" onclick="runAnalysis()" disabled>▶ RUN FULL ANALYSIS</button>
+    <button class="btn btn-outline" onclick="clearAll()">CLEAR</button>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <h2>03 — Pipeline Log</h2>
+  <div class="log" id="log"><div class="line">Waiting for analysis...</div></div>
+</div>
+
+<!-- Results -->
+<div id="results-card" class="card" style="display:none;">
+  <h2>04 — Results</h2>
+  <div id="verdict-banner" class="verdict-banner">
+    <div class="vtext" id="verdict-text">—</div>
+    <div class="vsub" id="verdict-sub">ARIA PRIMARY VERDICT</div>
+  </div>
+  <div class="score-bar-wrap">
+    <div class="slabel">CONFIDENCE SCORE: <span id="score-label">0</span>/100</div>
+    <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+  </div>
+  <div class="grid2" id="results-grid"></div>
+  <div class="btn-row">
+    <button class="btn" id="pdf-btn" onclick="downloadPDF()">⬇ DOWNLOAD PDF REPORT</button>
+  </div>
+</div>
+
+<script>
+  const BASE = '';
+  let uploadedFile = null;
+  let analysisData = null;
+
+  // ── Drop zone ──────────────────────────────────────────────────────────────
+  const dz = document.getElementById('dropzone');
+  const fi = document.getElementById('fileinput');
+
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  fi.addEventListener('change', () => { if (fi.files[0]) handleFile(fi.files[0]); });
+
+  function handleFile(f) {
+    uploadedFile = f;
+    document.getElementById('fname').textContent = f.name + '  (' + (f.size/1024).toFixed(1) + ' KB)';
+    document.getElementById('analyze-btn').disabled = false;
+    setStatus('upload-status', 'info', 'File selected: ' + f.name);
+  }
+
+  // ── Log ────────────────────────────────────────────────────────────────────
+  function log(msg, cls='line') {
+    const el = document.getElementById('log');
+    const d = document.createElement('div');
+    d.className = 'line ' + cls;
+    d.textContent = '[' + new Date().toTimeString().slice(0,8) + '] ' + msg;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setStatus(id, cls, msg) {
+    const el = document.getElementById(id);
+    el.className = 'status ' + cls;
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // ── Analysis ───────────────────────────────────────────────────────────────
+  async function runAnalysis() {
+    if (!uploadedFile) return;
+
+    const btn = document.getElementById('analyze-btn');
+    btn.innerHTML = '<span class="spinner"></span>ANALYZING...';
+    btn.disabled = true;
+    document.getElementById('results-card').style.display = 'none';
+    document.getElementById('pdf-btn').style.display = 'none';
+    document.getElementById('log').innerHTML = '';
+
+    try {
+      // Step 1: Upload
+      log('Uploading ' + uploadedFile.name + '...', 'info');
+      const fd = new FormData();
+      fd.append('file', uploadedFile);
+      const upResp = await fetch(BASE + '/upload', { method:'POST', body:fd });
+      if (!upResp.ok) throw new Error('Upload failed: ' + upResp.status);
+      const upData = await upResp.json();
+      const filepath = upData.filepath || upData.path;
+      log('Upload OK — ' + filepath, 'ok');
+
+      // Step 2: Full static analysis
+      log('Starting full pipeline (hashes, PE, Ghidra, DIE, FLOSS, CAPA, YARA, VT, ARIA)...', 'info');
+      log('This may take 2–5 minutes...', 'warn');
+
+      const notes = document.getElementById('analyst-notes').value;
+      const anaResp = await fetch(BASE + '/analyze/static', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ filename: uploadedFile.name, analyst_notes: notes })
+      });
+      if (!anaResp.ok) throw new Error('Analysis failed: ' + anaResp.status);
+      const data = await anaResp.json();
+      analysisData = data;
+      analysisData.analyst_notes = notes;
+
+      log('Pipeline complete.', 'ok');
+
+      // Log key findings
+      const h = data.hashes || {};
+      if (h.md5) log('MD5: ' + h.md5, 'line');
+      if (h.sha256) log('SHA256: ' + h.sha256, 'line');
+      if (data.confidence_score !== undefined) log('Confidence Score: ' + data.confidence_score + '/100', 'head');
+      const verdict = extractVerdict(data);
+      if (verdict) log('Verdict: ' + verdict, verdict === 'MALICIOUS' ? 'err' : verdict === 'SUSPICIOUS' ? 'warn' : 'ok');
+      if (data.yara_matches && data.yara_matches.length) log('YARA Hits: ' + data.yara_matches.length, 'warn');
+      if (data.ghidra && data.ghidra.suspicious_functions) log('Ghidra Suspicious Functions: ' + data.ghidra.suspicious_functions.length, 'warn');
+
+      showResults(data);
+
+    } catch(e) {
+      log('ERROR: ' + e.message, 'err');
+      setStatus('upload-status', 'err', 'Analysis failed: ' + e.message);
+    } finally {
+      btn.innerHTML = '▶ RUN FULL ANALYSIS';
+      btn.disabled = false;
+    }
+  }
+
+  // ── Extract verdict from ARIA report text ─────────────────────────────────
+  function extractVerdict(data) {
+    const ariaText = (data.aria || {}).executive_report || (data.aria || {}).full_response || '';
+    const m = ariaText.match(/VERDICT[:\s*]*(MALICIOUS|SUSPICIOUS|BENIGN)/i);
+    if (m) return m[1].toUpperCase();
+    // Fallback: infer from confidence score
+    const score = data.confidence_score || 0;
+    if (score >= 70) return 'MALICIOUS';
+    if (score >= 40) return 'SUSPICIOUS';
+    return 'UNKNOWN';
+  }
+
+  // ── Show Results ───────────────────────────────────────────────────────────
+  function showResults(data) {
+    const card = document.getElementById('results-card');
+    card.style.display = 'block';
+
+    // Verdict banner
+    const verdict = extractVerdict(data);
+    const banner = document.getElementById('verdict-banner');
+    banner.className = 'verdict-banner ' + (verdict === 'MALICIOUS' ? 'malicious' : verdict === 'SUSPICIOUS' ? 'suspicious' : 'benign');
+    document.getElementById('verdict-text').textContent = verdict;
+    document.getElementById('verdict-text').style.color = verdict === 'MALICIOUS' ? '#cc0000' : verdict === 'SUSPICIOUS' ? '#ff9800' : '#4caf50';
+
+    // Score
+    const score = data.confidence_score || 0;
+    document.getElementById('score-label').textContent = score;
+    document.getElementById('score-fill').style.width = score + '%';
+
+    // Grid
+    const h = data.hashes || {};
+    const pe = data.pe_info || {};
+    const gh = data.ghidra || {};
+    const vt = data.virustotal || {};
+    const vtTotal = (vt.malicious || 0) + (vt.suspicious || 0) + (vt.undetected || 0) + (vt.harmless || 0);
+    const fileType = (data.file_type || {}).description || data.file_type || '—';
+    const grid = document.getElementById('results-grid');
+    grid.innerHTML = '';
+
+    const items = [
+      ['FILENAME',     data.filename || '—', ''],
+      ['MD5',          h.md5 || '—', ''],
+      ['SHA256',       (h.sha256 || '—').slice(0,32) + '...', ''],
+      ['FILE TYPE',    fileType, ''],
+      ['VT DETECTIONS', (vt.malicious || 0) + '/' + vtTotal, vt.malicious > 0 ? 'red' : 'green'],
+      ['CONFIDENCE',   score + '/100', score >= 70 ? 'red' : score >= 40 ? 'yellow' : 'green'],
+      ['YARA HITS',    (data.yara_matches || []).length + ' rules matched', (data.yara_matches||[]).length > 0 ? 'yellow' : 'green'],
+      ['GHIDRA FUNCS', (gh.total_functions || 0).toLocaleString() + ' total / ' + (gh.suspicious_functions||[]).length + ' suspicious', ''],
+    ];
+
+    items.forEach(([label, value, cls]) => {
+      grid.innerHTML += `<div class="result-item"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`;
+    });
+
+    document.getElementById('pdf-btn').style.display = 'inline-block';
+    card.scrollIntoView({ behavior:'smooth' });
+  }
+
+  // ── PDF Download ───────────────────────────────────────────────────────────
+  async function downloadPDF() {
+    if (!analysisData) return;
+    const btn = document.getElementById('pdf-btn');
+    btn.innerHTML = '<span class="spinner"></span>GENERATING PDF...';
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(BASE + '/generate_pdf', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(analysisData)
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'HTTP ' + resp.status);
+      }
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      const cd   = resp.headers.get('Content-Disposition') || '';
+      const fn   = cd.match(/filename=(.+)/)?.[1] || 'ARIA_Report.pdf';
+      a.href = url; a.download = fn;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      log('PDF downloaded: ' + fn, 'ok');
+    } catch(e) {
+      log('PDF error: ' + e.message, 'err');
+      alert('PDF generation failed: ' + e.message);
+    } finally {
+      btn.innerHTML = '⬇ DOWNLOAD PDF REPORT';
+      btn.disabled = false;
+    }
+  }
+
+  // ── Clear ──────────────────────────────────────────────────────────────────
+  function clearAll() {
+    uploadedFile = null; analysisData = null;
+    document.getElementById('fname').textContent = '';
+    document.getElementById('analyze-btn').disabled = true;
+    document.getElementById('results-card').style.display = 'none';
+    document.getElementById('log').innerHTML = '<div class="line">Waiting for analysis...</div>';
+    document.getElementById('upload-status').style.display = 'none';
+    document.getElementById('analyst-notes').value = '';
+    fi.value = '';
+  }
+</script>
+</body>
+</html>

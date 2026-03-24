@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — Malware Analysis Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+  :root {
+    --green:#00ff41; --green-dim:#00cc33; --green-dark:#003a0f;
+    --green-glow:rgba(0,255,65,0.15); --red:#ff2b2b; --amber:#ffb700;
+    --blue:#44aaff; --bg:#010801; --bg2:#030d04;
+    --border:rgba(0,255,65,0.18); --text:#b0ffb8; --text-dim:#3d7a45;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:9999;}
+  .ticker{background:rgba(0,255,65,0.03);border-bottom:1px solid var(--border);padding:5px 0;overflow:hidden;white-space:nowrap;font-size:0.63rem;color:var(--text-dim);letter-spacing:0.08em;}
+  .ticker-inner{display:inline-block;animation:ticker 45s linear infinite;}
+  @keyframes ticker{from{transform:translateX(100vw);}to{transform:translateX(-100%);}}
+  header{padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(0,255,65,0.03) 0%,transparent 100%);}
+  .logo{font-family:'Orbitron',monospace;font-weight:900;font-size:1.5rem;letter-spacing:0.35em;color:var(--green);text-shadow:0 0 25px rgba(0,255,65,0.4);}
+  .logo-sub{font-size:0.58rem;letter-spacing:0.18em;color:var(--text-dim);margin-top:3px;}
+  .header-right{display:flex;gap:24px;align-items:center;}
+  .status-pill{display:flex;align-items:center;gap:7px;padding:5px 12px;border:1px solid var(--border);font-size:0.62rem;letter-spacing:0.1em;color:var(--text-dim);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s ease-in-out infinite;}
+  .dot.red{background:var(--red);box-shadow:0 0 8px var(--red);animation:none;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .clock{font-size:0.68rem;color:var(--text-dim);}
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);}
+  .stat{padding:12px 24px;border-right:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+  .stat:last-child{border-right:none;}
+  .stat-num{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:700;line-height:1;}
+  .stat-num.g{color:var(--green);text-shadow:0 0 12px rgba(0,255,65,0.35);}
+  .stat-num.r{color:var(--red);text-shadow:0 0 12px rgba(255,43,43,0.35);}
+  .stat-num.a{color:var(--amber);text-shadow:0 0 12px rgba(255,183,0,0.35);}
+  .stat-label{font-size:0.58rem;letter-spacing:0.13em;color:var(--text-dim);text-transform:uppercase;}
+  .stat-sub{font-size:0.52rem;color:rgba(0,255,65,0.18);}
+  .layout{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 148px);}
+  .left{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+  .ptitle{padding:10px 18px;border-bottom:1px solid var(--border);font-family:'Orbitron',monospace;font-size:0.58rem;letter-spacing:0.22em;color:var(--green-dim);background:rgba(0,255,65,0.02);display:flex;align-items:center;gap:7px;flex-shrink:0;}
+  .ptitle::before{content:'▸';color:var(--green);}
+  .drop-zone{margin:14px;border:1px dashed rgba(0,255,65,0.22);padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:rgba(0,255,65,0.01);flex-shrink:0;}
+  .drop-zone:hover,.drop-zone.active{border-color:var(--green);background:var(--green-glow);}
+  .drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;pointer-events:none;}
+  .drop-icon{font-size:1.8rem;margin-bottom:8px;display:block;opacity:0.45;}
+  .drop-title{font-family:'Orbitron',monospace;font-size:0.65rem;letter-spacing:0.18em;color:var(--green);margin-bottom:5px;}
+  .drop-sub{font-size:0.62rem;color:var(--text-dim);line-height:1.65;}
+  .sandbox-warn{margin:0 14px 10px;padding:8px 12px;border:1px solid rgba(255,43,43,0.3);background:rgba(255,43,43,0.04);font-size:0.65rem;color:var(--red);display:none;flex-shrink:0;}
+  .sandbox-warn.on{display:block;}
+  .queue{flex:1;overflow-y:auto;padding:0 14px 10px;}
+  .queue::-webkit-scrollbar{width:3px;}
+  .queue::-webkit-scrollbar-thumb{background:var(--green-dark);}
+  .qi{display:flex;align-items:center;padding:7px 10px;border:1px solid var(--border);margin-bottom:5px;background:rgba(0,255,65,0.01);gap:8px;animation:fi 0.2s ease;cursor:pointer;transition:border-color 0.15s;}
+  .qi:hover{border-color:rgba(0,255,65,0.35);}
+  .qi.sel{border-color:var(--green);background:rgba(0,255,65,0.04);}
+  @keyframes fi{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+  .qi-name{flex:1;font-size:0.67rem;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .qi-size{font-size:0.58rem;color:var(--text-dim);flex-shrink:0;}
+  .badge{font-size:0.52rem;padding:2px 6px;border:1px solid;letter-spacing:0.08em;flex-shrink:0;}
+  .badge.q{border-color:var(--text-dim);color:var(--text-dim);}
+  .badge.a{border-color:var(--amber);color:var(--amber);animation:pulse 0.5s ease infinite;}
+  .badge.d{border-color:var(--green);color:var(--green);}
+  .badge.e{border-color:var(--red);color:var(--red);}
+  .analyze-btn{margin:0 14px 12px;padding:12px;background:transparent;border:1px solid var(--green);color:var(--green);font-family:'Orbitron',monospace;font-size:0.65rem;letter-spacing:0.22em;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;flex-shrink:0;}
+  .analyze-btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,255,65,0.1),transparent);transition:left 0.5s ease;}
+  .analyze-btn:hover::before{left:100%;}
+  .analyze-btn:hover{background:rgba(0,255,65,0.07);box-shadow:0 0 20px rgba(0,255,65,0.1);}
+  .analyze-btn:disabled{opacity:0.22;cursor:not-allowed;}
+  .analyze-btn:disabled::before{display:none;}
+  .hash-section{border-top:1px solid var(--border);padding:12px 14px;flex-shrink:0;}
+  .hash-label{font-size:0.58rem;color:var(--text-dim);letter-spacing:0.1em;margin-bottom:7px;}
+  .hash-row{display:flex;gap:7px;}
+  .hash-input{flex:1;background:#010701;border:1px solid var(--border);color:var(--green);font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:7px 10px;outline:none;transition:border-color 0.2s;}
+  .hash-input:focus{border-color:var(--green);}
+  .hash-input::placeholder{color:var(--text-dim);font-size:0.62rem;}
+  .hash-btn{padding:7px 12px;background:transparent;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'Orbitron',monospace;font-size:0.52rem;letter-spacing:0.13em;cursor:pointer;transition:all 0.2s;}
+  .hash-btn:hover{border-color:var(--green);color:var(--green);background:rgba(0,255,65,0.04);}
+  .right{display:flex;flex-direction:column;overflow:hidden;}
+  .report-bar{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(0,255,65,0.02);flex-shrink:0;}
+  .report-bar-left{display:flex;align-items:center;gap:14px;}
+  .rbar-title{font-family:'Orbitron',monospace;font-size:0.58rem;letter-spacing:0.22em;color:var(--green-dim);}
+  .timer-display{font-family:'Orbitron',monospace;font-size:0.68rem;color:var(--amber);letter-spacing:0.08em;display:none;}
+  .timer-display.on{display:block;}
+  .eta-label{font-size:0.55rem;color:var(--text-dim);letter-spacing:0.08em;display:none;}
+  .eta-label.on{display:block;}
+  .pbar{width:100px;height:2px;background:var(--border);overflow:hidden;display:none;}
+  .pbar.on{display:block;}
+  .pbar-fill{height:100%;background:var(--amber);box-shadow:0 0 6px var(--amber);width:0%;transition:width 0.4s ease;}
+  .report-bar-right{display:flex;gap:7px;}
+  .act-btn{padding:4px 10px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'Orbitron',monospace;font-size:0.5rem;letter-spacing:0.13em;cursor:pointer;transition:all 0.15s;display:none;}
+  .act-btn:hover{border-color:var(--green);color:var(--green);}
+  .act-btn.on{display:inline-block;}
+  .terminal{flex:1;background:#010701;padding:18px 22px;overflow-y:auto;font-size:0.72rem;line-height:1.85;word-break:break-word;position:relative;}
+  .terminal::-webkit-scrollbar{width:3px;}
+  .terminal::-webkit-scrollbar-thumb{background:var(--green-dark);}
+  .analyzing-state{position:absolute;inset:0;background:#010701;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:10;}
+  .analyzing-state.on{display:flex;}
+  .spinner-ring{width:56px;height:56px;border:1px solid rgba(0,255,65,0.08);border-top-color:var(--green);border-radius:50%;animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .an-label{font-family:'Orbitron',monospace;font-size:0.65rem;letter-spacing:0.25em;color:var(--green);animation:pulse 1s ease infinite;}
+  .an-step{font-size:0.62rem;color:var(--text-dim);letter-spacing:0.08em;max-width:320px;text-align:center;}
+  .an-timer{font-family:'Orbitron',monospace;font-size:2.2rem;font-weight:700;color:var(--amber);text-shadow:0 0 20px rgba(255,183,0,0.25);}
+  .an-eta{font-size:0.58rem;color:var(--text-dim);letter-spacing:0.1em;}
+  .empty-state{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+  .wm{font-family:'Orbitron',monospace;font-size:3.5rem;font-weight:900;color:rgba(0,255,65,0.04);letter-spacing:0.4em;}
+  .em-hint{font-size:0.68rem;letter-spacing:0.1em;color:var(--text-dim);}
+  .em-hint2{font-size:0.58rem;color:rgba(0,255,65,0.18);}
+  .rl{display:block;white-space:pre-wrap;}
+  .rl.hdr{color:var(--green);}
+  .rl.sep{color:rgba(0,255,65,0.14);}
+  .rl.lbl{color:var(--text-dim);}
+  .rl.mal{color:var(--red);font-weight:bold;}
+  .rl.sus{color:var(--amber);font-weight:bold;}
+  .rl.cln{color:var(--green);font-weight:bold;}
+  .rl.mit{color:var(--blue);}
+  .rl.ioc{color:#ff9944;}
+  .rl.warn{color:var(--red);}
+
+  .report-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:rgba(0,255,65,0.01);flex-shrink:0;}
+  .rtab{padding:8px 20px;font-family:'Orbitron',monospace;font-size:0.55rem;letter-spacing:0.18em;color:var(--text-dim);cursor:pointer;border-right:1px solid var(--border);border-bottom:2px solid transparent;transition:all 0.15s;background:transparent;}
+  .rtab:hover{color:var(--green);background:rgba(0,255,65,0.03);}
+  .rtab.active{color:var(--green);border-bottom:2px solid var(--green);background:rgba(0,255,65,0.05);}
+  .tab-pane{display:none;flex:1;overflow-y:auto;padding:18px 22px;font-size:0.72rem;line-height:1.85;word-break:break-word;}
+  .tab-pane.active{display:block;}
+  .tab-pane::-webkit-scrollbar{width:3px;}
+  .tab-pane::-webkit-scrollbar-thumb{background:var(--green-dark);}
+  .aria-section{margin:14px 0;padding:12px 16px;border-left:2px solid var(--green-dim);background:rgba(0,255,65,0.02);}
+  .aria-section-title{font-family:'Orbitron',monospace;font-size:0.62rem;letter-spacing:0.18em;color:var(--green);margin-bottom:8px;}
+  .aria-text{color:var(--text);font-size:0.7rem;line-height:1.9;white-space:pre-wrap;}
+  .aria-verdict-box{padding:16px;border:1px solid;margin-bottom:14px;display:flex;gap:20px;align-items:center;}
+  .aria-verdict-box.mal{border-color:var(--red);background:rgba(255,43,43,0.05);}
+  .aria-verdict-box.sus{border-color:var(--amber);background:rgba(255,183,0,0.05);}
+  .aria-verdict-box.cln{border-color:var(--green);background:rgba(0,255,65,0.03);}
+  .aria-v-label{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:700;letter-spacing:0.1em;}
+  .aria-v-label.mal{color:var(--red);text-shadow:0 0 15px rgba(255,43,43,0.4);}
+  .aria-v-label.sus{color:var(--amber);text-shadow:0 0 15px rgba(255,183,0,0.4);}
+  .aria-v-label.cln{color:var(--green);text-shadow:0 0 15px rgba(0,255,65,0.4);}
+  .exec-block{background:rgba(0,255,65,0.015);border:1px solid var(--border);padding:16px 20px;margin-bottom:16px;}
+  .exec-title{font-family:'Orbitron',monospace;font-size:0.58rem;letter-spacing:0.2em;color:var(--green-dim);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+  .exec-text{color:var(--text);font-size:0.73rem;line-height:2;white-space:pre-wrap;}
+  .ioc-table{width:100%;border-collapse:collapse;font-size:0.65rem;margin:8px 0;}
+  .ioc-table th{text-align:left;padding:5px 10px;color:var(--green-dim);font-family:'Orbitron',monospace;font-size:0.52rem;letter-spacing:0.1em;border-bottom:1px solid var(--border);}
+  .ioc-table td{padding:4px 10px;border-bottom:1px solid rgba(0,255,65,0.05);color:var(--text);word-break:break-all;}
+  .ioc-table tr:hover td{background:rgba(0,255,65,0.03);}
+  .tech-section{margin-bottom:20px;}
+  .tech-section-hdr{font-family:'Orbitron',monospace;font-size:0.6rem;letter-spacing:0.2em;color:var(--green);padding:8px 12px;background:rgba(0,255,65,0.04);border-left:3px solid var(--green);margin-bottom:8px;}
+  .tech-content{padding:0 12px;color:var(--text);font-size:0.7rem;line-height:1.9;white-space:pre-wrap;}
+  .mitre-row{display:grid;grid-template-columns:120px 1fr 1fr 80px;gap:8px;padding:4px 0;border-bottom:1px solid rgba(0,255,65,0.05);font-size:0.65rem;}
+  .mitre-id{color:var(--blue);}
+  .conf-high{color:var(--green);}
+  .conf-med{color:var(--amber);}
+  .conf-low{color:var(--text-dim);}
+  .capability-row{display:flex;gap:10px;padding:4px 0;font-size:0.68rem;}
+  .cap-status{width:80px;flex-shrink:0;font-family:'Orbitron',monospace;font-size:0.52rem;}
+  .cap-status.confirmed{color:var(--red);}
+  .cap-status.likely{color:var(--amber);}
+  .cap-status.possible{color:var(--text-dim);}
+  .cap-status.none{color:rgba(0,255,65,0.2);}
+
+</style>
+</head>
+<body>
+
+<div class="ticker">
+  <span class="ticker-inner">
+    ◈ ARIA MALWARE ANALYSIS LAB &nbsp;|&nbsp; SANDBOX INTEGRATED &nbsp;|&nbsp; VIRUSTOTAL LIVE &nbsp;|&nbsp; CAPA v9.3.1 &nbsp;|&nbsp; YARA ENGINE ACTIVE &nbsp;|&nbsp; PIPELINE: TRIAGE → STATIC → CAPA → YARA → VT → REPORT &nbsp;|&nbsp; ALL SAMPLES ISOLATED &nbsp;|&nbsp; NO HOST EXECUTION &nbsp;|&nbsp; ANALYST: ARIA v1.0 &nbsp;&nbsp;&nbsp;
+  </span>
+</div>
+
+<header>
+  <div>
+    <div class="logo">ARIA</div>
+    <div class="logo-sub">AUTOMATED REVERSE ENGINEERING &amp; INTELLIGENCE AGENT</div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="dot red" id="sdot"></div>
+      <span id="slabel">CHECKING...</span>
+    </div>
+    <div class="clock" id="clock"></div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num g" id="st">0</div><div><div class="stat-label">Analyzed</div><div class="stat-sub">total samples</div></div></div>
+  <div class="stat"><div class="stat-num r" id="sm">0</div><div><div class="stat-label">Malicious</div><div class="stat-sub">confirmed</div></div></div>
+  <div class="stat"><div class="stat-num a" id="ss">0</div><div><div class="stat-label">Suspicious</div><div class="stat-sub">review needed</div></div></div>
+  <div class="stat"><div class="stat-num g" id="sc">0</div><div><div class="stat-label">Clean</div><div class="stat-sub">no detections</div></div></div>
+</div>
+
+<div class="layout">
+  <div class="left">
+    <div class="ptitle">SAMPLE INTAKE</div>
+    <div class="drop-zone" id="dz">
+      <input type="file" id="fi" multiple>
+      <span class="drop-icon">⬡</span>
+      <div class="drop-title">DROP SAMPLE HERE</div>
+      <div class="drop-sub">Drag &amp; drop or click to browse<br><span style="color:rgba(0,255,65,0.28);font-size:0.58rem">PE · ELF · APK · JS · PS1 · any format</span></div>
+    </div>
+    <div style="margin:0 14px 10px;display:flex;flex-direction:column;gap:4px;">
+      <div style="font-family:Orbitron,monospace;font-size:0.55rem;letter-spacing:0.15em;color:var(--green);opacity:0.7;">ANALYST NOTES (optional)</div>
+      <textarea id="analyst-notes" placeholder="e.g. Found in phishing email, suspected RedLine, internal ticket #1234..." style="background:rgba(0,255,65,0.03);border:1px solid rgba(0,255,65,0.15);color:var(--text);font-family:monospace;font-size:0.62rem;padding:8px;resize:vertical;min-height:52px;outline:none;width:100%;box-sizing:border-box;border-radius:2px;"></textarea>
+    </div>
+    <div class="sandbox-warn" id="swarn">⚠ SANDBOX OFFLINE — <code style="color:var(--amber)">docker start sandbox</code></div>
+    <div class="queue" id="queue"></div>
+    <button class="analyze-btn" id="abtn" disabled onclick="analyzeAll()">▶ &nbsp; INITIATE ANALYSIS</button>
+    <div class="hash-section">
+      <div class="hash-label">▸ HASH LOOKUP — VIRUSTOTAL</div>
+      <div class="hash-row">
+        <input class="hash-input" id="hi" placeholder="MD5 / SHA1 / SHA256" type="text" onkeydown="if(event.key==='Enter')lookupHash()">
+        <button class="hash-btn" onclick="lookupHash()">QUERY</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="report-bar">
+      <div class="report-bar-left">
+        <div class="rbar-title">▸ ARIA ANALYSIS REPORT</div>
+        <div class="pbar" id="pbar"><div class="pbar-fill" id="pfill"></div></div>
+        <div class="timer-display" id="tdisplay">00:00</div>
+        <div class="eta-label" id="eta">EST. ~90s remaining</div>
+      </div>
+      <div class="report-bar-right">
+        <button class="act-btn" id="bpdf" onclick="exportPDF()">PDF</button>
+        <button class="act-btn" id="bcopy" onclick="copyReport()">COPY</button>
+        <button class="act-btn" id="bclear" onclick="clearReport()">CLEAR</button>
+      </div>
+    </div>
+    <div class="report-tabs" id="report-tabs" style="display:none;">
+      <div class="rtab active" id="tab-exec" onclick="switchTab('exec')">▸ EXECUTIVE REPORT</div>
+      <div class="rtab" id="tab-tech" onclick="switchTab('tech')">▸ TECHNICAL ANALYSIS</div>
+      <div class="rtab" id="tab-raw" onclick="switchTab('raw')">▸ RAW DATA</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <div class="analyzing-state" id="anstate">
+        <div class="spinner-ring"></div>
+        <div class="an-label" id="an-label">ANALYZING</div>
+        <div class="an-step" id="an-step">Initializing pipeline...</div>
+        <div class="an-timer" id="an-timer">00:00</div>
+        <div class="an-eta" id="an-eta">CAPA rule matching may take 60-120s</div>
+      </div>
+      <div id="tab-exec-pane" class="tab-pane active">
+        <div class="empty-state" id="empty">
+          <div class="wm">ARIA</div>
+          <div class="em-hint">AWAITING SAMPLE INPUT</div>
+          <div class="em-hint2">Drop a file or submit a hash to begin</div>
+        </div>
+      </div>
+      <div id="tab-tech-pane" class="tab-pane"></div>
+      <div id="tab-raw-pane" class="tab-pane terminal" style="padding:18px 22px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SANDBOX = 'https://127.0.0.1:5000';
+let files = [], stats = {t:0,m:0,s:0,c:0}, lastReport = '';
+let timerInterval = null, startTime = null, stepInterval = null;
+
+const STEPS = [
+  'Computing hashes (MD5/SHA256/ssdeep)...',
+  'Identifying file type via magic bytes...',
+  'Parsing PE structure and sections...',
+  'Extracting interesting strings...',
+  'Running CAPA capability detection...',
+  'Matching YARA signatures...',
+  'Querying VirusTotal intelligence...',
+  'Compiling final analysis report...'
+];
+
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
+}, 1000);
+
+async function checkSandbox() {
+  try {
+    const r = await fetch(SANDBOX + '/health');
+    if (r.ok) {
+      document.getElementById('sdot').className = 'dot';
+      document.getElementById('slabel').textContent = 'SANDBOX ONLINE';
+      document.getElementById('swarn').className = 'sandbox-warn';
+    } else throw 0;
+  } catch {
+    document.getElementById('sdot').className = 'dot red';
+    document.getElementById('slabel').textContent = 'SANDBOX OFFLINE';
+    document.getElementById('swarn').className = 'sandbox-warn on';
+  }
+}
+checkSandbox();
+setInterval(checkSandbox, 15000);
+
+const dz = document.getElementById('dz');
+const fi = document.getElementById('fi');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('active'); });
+dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('active'); });
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('active'); addFiles([...e.dataTransfer.files]); });
+dz.addEventListener('click', e => { if (e.target !== fi) fi.click(); });
+fi.addEventListener('change', () => { addFiles([...fi.files]); fi.value=''; });
+
+function addFiles(newFiles) {
+  newFiles.forEach(f => {
+    if (!files.find(x => x.file.name===f.name && x.file.size===f.size))
+      files.push({file:f, status:'queued', id:Math.random()});
+  });
+  renderQueue();
+  document.getElementById('abtn').disabled = files.length === 0;
+}
+
+function fmt(b) {
+  if (!b || b === 0) return 'N/A';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function renderQueue() {
+  const q = document.getElementById('queue');
+  q.innerHTML = '';
+  files.forEach(f => {
+    const d = document.createElement('div');
+    const bs = {queued:'q',analyzing:'a',done:'d',error:'e'}[f.status]||'q';
+    d.className = 'qi' + (f.active?' sel':'');
+    d.innerHTML = '<span class="qi-name" title="'+f.file.name+'">'+f.file.name+'</span><span class="qi-size">'+fmt(f.file.size)+'</span><span class="badge '+bs+'">'+f.status.toUpperCase()+'</span>';
+    if (f.report) d.onclick = () => showReport(f.report);
+    q.appendChild(d);
+  });
+}
+
+function startTimer() {
+  startTime = Date.now();
+  let stepIdx = 0;
+  document.getElementById('tdisplay').className = 'timer-display on';
+  document.getElementById('pbar').className = 'pbar on';
+  document.getElementById('eta').className = 'eta-label on';
+  document.getElementById('anstate').className = 'analyzing-state on';
+  document.getElementById('empty').style.display = 'none';
+
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const ss = String(elapsed%60).padStart(2,'0');
+    const ts = mm+':'+ss;
+    document.getElementById('tdisplay').textContent = ts;
+    document.getElementById('an-timer').textContent = ts;
+    const rem = Math.max(0, 90-elapsed);
+    const etaTxt = rem > 0 ? 'EST. ~'+rem+'s remaining' : 'Almost done...';
+    document.getElementById('eta').textContent = etaTxt;
+    document.getElementById('an-eta').textContent = rem > 0 ? 'CAPA rule matching — ~'+rem+'s remaining' : 'Finalizing report...';
+    document.getElementById('pfill').style.width = Math.min(95,(elapsed/90)*100)+'%';
+  }, 1000);
+
+  stepInterval = setInterval(() => {
+    if (stepIdx < STEPS.length) {
+      document.getElementById('an-step').textContent = STEPS[stepIdx];
+      document.getElementById('an-label').textContent = stepIdx >= 4 ? 'DEEP ANALYSIS' : 'ANALYZING';
+      stepIdx++;
+    }
+  }, 11000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval); clearInterval(stepInterval);
+  document.getElementById('pfill').style.width = '100%';
+  setTimeout(() => {
+    document.getElementById('tdisplay').className = 'timer-display';
+    document.getElementById('pbar').className = 'pbar';
+    document.getElementById('eta').className = 'eta-label';
+  }, 800);
+  document.getElementById('anstate').className = 'analyzing-state';
+}
+
+async function analyzeAll() {
+  const btn = document.getElementById('abtn');
+  btn.disabled = true;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (f.status === 'done') continue;
+    f.status = 'analyzing'; f.active = true;
+    renderQueue(); startTimer();
+    try {
+      const fd = new FormData();
+      fd.append('file', f.file);
+      const up = await fetch(SANDBOX+'/upload', {method:'POST',body:fd});
+      if (!up.ok) throw new Error('Upload failed: '+up.status);
+      const ar = await fetch(SANDBOX+'/analyze/static', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({filename: f.file.name, analyst_notes: document.getElementById("analyst-notes").value.trim()})
+      });
+      if (!ar.ok) throw new Error('Analysis failed: '+ar.status);
+      const data = await ar.json();
+      stopTimer();
+      f.status = 'done'; f.active = false;
+      f.data = data;
+      f.report = buildReport(data, f.file.name);
+      window.lastAnalysisData = data;
+      window.lastAnalysisNotes = document.getElementById('analyst-notes')?.value || '';
+      updateStats(data);
+      showReport(f.report);
+    } catch(err) {
+      stopTimer();
+      f.status = 'error'; f.active = false;
+      showError(f.file.name, err.message);
+    }
+    renderQueue();
+  }
+  btn.disabled = files.filter(f => f.status !== 'done').length === 0;
+}
+
+function updateStats(data) {
+  stats.t++;
+  const vt = data.virustotal || {};
+  const mal = vt.malicious || 0;
+  const tot = (vt.malicious||0)+(vt.suspicious||0)+(vt.undetected||0)+(vt.harmless||0);
+  if (tot > 0 && mal/tot > 0.1) stats.m++;
+  else if (mal > 0 || (vt.suspicious||0) > 0) stats.s++;
+  else stats.c++;
+  document.getElementById('st').textContent = stats.t;
+  document.getElementById('sm').textContent = stats.m;
+  document.getElementById('ss').textContent = stats.s;
+  document.getElementById('sc').textContent = stats.c;
+}
+
+function buildReport(data, filename) {
+  const h = data.hashes || {};
+  const pe = data.pe_info || {};
+  const vt = data.virustotal || {};
+  const capa = data.capa || {};
+  const strings = data.strings || {};
+  const yara = data.yara_matches || [];
+  const filesize = data.size || data.file_size || h.size || 0;
+
+  const mal = vt.malicious || 0;
+  const tot = (vt.malicious||0)+(vt.suspicious||0)+(vt.undetected||0)+(vt.harmless||0);
+  const ratio = tot > 0 ? mal/tot : 0;
+  // Parse ARIA's verdict from the report text (overrides VT-only logic)
+  let verdict = 'BENIGN', vclass = 'cln';
+  if (ratio > 0.1) { verdict = 'MALICIOUS'; vclass = 'mal'; }
+  else if (mal > 0 || (vt.suspicious||0) > 0) { verdict = 'SUSPICIOUS'; vclass = 'sus'; }
+  // Override with ARIA's explicit verdict if present
+  const ariaRaw = data.aria_report || (typeof data.aria === "string" ? data.aria : JSON.stringify(data.aria||{})) || ""; const ariaText = ariaRaw.toUpperCase();
+  const ariaVerdictMatch = ariaText.match(/VERDICT:[*\s]*(MALICIOUS|SUSPICIOUS|BENIGN)/);
+  if (ariaVerdictMatch) {
+    const av = ariaVerdictMatch[1];
+    if (av === 'MALICIOUS') { verdict = 'MALICIOUS'; vclass = 'mal'; }
+    else if (av === 'SUSPICIOUS') { verdict = 'SUSPICIOUS'; vclass = 'sus'; }
+    else if (av === 'BENIGN') { verdict = 'BENIGN'; vclass = 'cln'; }
+  }
+
+  const vtRatio = vt.detection_ratio || (tot > 0 ? mal+'/'+tot : 'N/A');
+  const capabilities = capa.capabilities || [];
+  const mitre = capa.mitre_attack || [];
+  const mbc = capa.mbc || [];
+  const interesting = (strings.interesting || []).slice(0,20);
+  const sections = pe.sections || [];
+  const suspImports = pe.suspicious_imports || [];
+
+  const lines = [];
+  const L = (t,c='') => lines.push({text:t,cls:c});
+
+  L('╔═══════════════════════════════════════════════════════════════╗','hdr');
+  L('║            ARIA MALWARE ANALYSIS REPORT                       ║','hdr');
+  L('╚═══════════════════════════════════════════════════════════════╝','hdr');
+  L('');
+  L('SAMPLE IDENTIFICATION','lbl');
+  L('  File      : '+filename);
+  L('  MD5       : '+(h.md5||'N/A'));
+  L('  SHA1      : '+(h.sha1||'N/A'));
+  L('  SHA256    : '+(h.sha256||'N/A'));
+  L('  ssdeep    : '+(h.ssdeep||'N/A'));
+  L('  Size      : '+fmt(filesize));
+  L('  Type      : '+(data.file_type && (data.file_type.description||data.file_type.mime)||'N/A'));
+  L('');
+  L('───────────────────────────────────────────────────────────────','sep');
+  L('  VERDICT : '+verdict+'  —  Confidence: '+(tot > 5 ? 'HIGH':'MEDIUM'), vclass);
+  L('  Family  : '+(vt.family||vt.suggested_label||'UNKNOWN'));
+  L('');
+  L('DETECTION (VIRUSTOTAL)','lbl');
+  L('  Score      : '+vtRatio+' engines');
+  L('  Malicious  : '+(vt.malicious||0));
+  L('  Suspicious : '+(vt.suspicious||0));
+  L('  Undetected : '+(vt.undetected||0));
+  L('  VT Link    : '+(vt.vt_link||'N/A'),'ioc');
+  L('');
+
+  if (pe.machine) {
+    L('───────────────────────────────────────────────────────────────','sep');
+    L('PE ANALYSIS','lbl');
+    L('  Machine      : '+(pe.machine||'N/A'));
+    L('  Compile Time : '+(pe.compile_time||'N/A'));
+    L('  Imphash      : '+(pe.imphash||'N/A'));
+    if (sections.length) {
+      L('  Sections:','lbl');
+      sections.forEach(s => {
+        const ent = parseFloat(s.entropy||0).toFixed(2);
+        const hi = parseFloat(ent) > 7.0;
+        L('    '+String(s.name||'?').padEnd(12)+' entropy:'+String(ent).padStart(5)+'  size:'+fmt(s.raw_size||0)+(hi?' ⚠ HIGH ENTROPY':''), hi?'warn':'');
+      });
+    }
+    if (suspImports.length) {
+      L('  Suspicious Imports:','warn');
+      suspImports.slice(0,12).forEach(i => L('    ⚠ '+i,'warn'));
+    }
+    L('');
+  }
+
+  if (interesting.length) {
+    L('───────────────────────────────────────────────────────────────','sep');
+    L('INTERESTING STRINGS','lbl');
+    interesting.forEach(s => L('  '+s,'ioc'));
+    L('');
+  }
+
+  if (mitre.length) {
+    L('───────────────────────────────────────────────────────────────','sep');
+    L('MITRE ATT&CK','lbl');
+    mitre.slice(0,15).forEach(m => L('  '+(m.id||'').padEnd(14)+(m.tactic||'').padEnd(22)+'— '+(m.technique||''),'mit'));
+    L('');
+  }
+
+  if (mbc.length) {
+    L('MBC BEHAVIORS','lbl');
+    mbc.slice(0,8).forEach(m => L('  '+(m.id||'')+' '+(m.objective||'')+' :: '+(m.behavior||'')));
+    L('');
+  }
+
+  if (yara.length) {
+    L('───────────────────────────────────────────────────────────────','sep');
+    L('YARA MATCHES','lbl');
+    yara.slice(0,10).forEach(y => L('  [!] '+y,'warn'));
+    L('');
+  }
+
+  if (!capabilities.length && !mitre.length) {
+    L('───────────────────────────────────────────────────────────────','sep');
+    L('NOTE: CAPA returned 0 capabilities.','lbl');
+    L('  Possible causes: packed/obfuscated binary, unsupported format,');
+    L('  or sample requires dynamic unpacking prior to static analysis.');
+    L('');
+  }
+
+  L('───────────────────────────────────────────────────────────────','sep');
+  L('ANALYST: ARIA v1.0  |  '+new Date().toISOString().replace('T',' ').slice(0,19)+' UTC','lbl');
+  L('═══════════════════════════════════════════════════════════════','hdr');
+
+  return {lines, verdict, vclass, data};
+}
+
+let currentExecReport = '';
+let currentTechReport = '';
+
+function switchTab(tab) {
+  document.querySelectorAll('.rtab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab+'-pane').classList.add('active');
+}
+
+function renderExecReport(aria, verdict, vclass) {
+  const pane = document.getElementById('tab-exec-pane');
+  pane.innerHTML = '';
+
+  const vbox = document.createElement('div');
+  vbox.className = 'aria-verdict-box '+vclass;
+  vbox.innerHTML = '<div class="aria-v-label '+vclass+'">'+verdict+'</div><div style="font-size:0.65rem;color:var(--text-dim);line-height:1.7;">ARIA PRIMARY VERDICT<br><span style="font-size:0.6rem;">Powered by Claude Sonnet — '+new Date().toISOString().replace('T',' ').slice(0,19)+' UTC</span></div>';
+  pane.appendChild(vbox);
+
+  // executive_report may be malformed — extract cleanly from full_response
+  let execText = aria.executive_report || aria.analysis || '';
+  const fullR = aria.full_response || '';
+  if (fullR.includes('[EXECUTIVE_START]')) {
+    const es = fullR.indexOf('[EXECUTIVE_START]');
+    const ee = fullR.indexOf('[EXECUTIVE_END]');
+    if (ee > es) execText = fullR.slice(es + 17, ee).trim();
+  }
+  if (execText) {
+    currentExecReport = execText;
+    const block = document.createElement('div');
+    block.className = 'exec-block';
+    const title = document.createElement('div');
+    title.className = 'exec-title';
+    title.textContent = '▸ EXECUTIVE SUMMARY — NON-TECHNICAL';
+    block.appendChild(title);
+    // Render paragraphs with markdown stripping
+    const textDiv = document.createElement('div');
+    textDiv.className = 'exec-text';
+    execText.split('\n').forEach(line => {
+      const clean = line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1');
+      if (!clean.trim()) { textDiv.appendChild(document.createElement('br')); return; }
+      const p = document.createElement('p');
+      p.style.marginBottom = '8px';
+      // Color severity keywords
+      if (/MALICIOUS|CRITICAL/.test(clean)) p.style.color = 'var(--red)';
+      else if (/SUSPICIOUS|WARNING/.test(clean)) p.style.color = 'var(--amber)';
+      else if (/IMMEDIATE ACTIONS/.test(clean)) { p.style.color = 'var(--green)'; p.style.fontFamily = "'Orbitron',monospace"; p.style.fontSize = '0.62rem'; p.style.letterSpacing = '0.1em'; }
+      p.textContent = clean;
+      textDiv.appendChild(p);
+    });
+    block.appendChild(textDiv);
+    pane.appendChild(block);
+  } else if (aria.error) {
+    const err = document.createElement('div');
+    err.style.cssText = 'color:var(--red);padding:12px;';
+    err.textContent = 'ARIA ERROR: '+aria.error;
+    pane.appendChild(err);
+  }
+}
+
+function renderTechReport(aria, report, rawData) {
+  const pane = document.getElementById('tab-tech-pane');
+  pane.innerHTML = '';
+
+  // Get best technical text — try all sources
+  const fullResp = aria.full_response || '';
+  let techText = '';
+
+  // Priority 1: extract from full_response between markers
+  if (fullResp.includes('[TECHNICAL_START]')) {
+    const ts = fullResp.indexOf('[TECHNICAL_START]');
+    const te = fullResp.indexOf('[TECHNICAL_END]');
+    techText = te > ts ? fullResp.slice(ts + 17, te).trim() : fullResp.slice(ts + 17).trim();
+  }
+  // Priority 2: technical_report field if it has real content
+  if (!techText && aria.technical_report && aria.technical_report.length > 100) {
+    techText = aria.technical_report;
+  }
+  // Priority 3: full_response minus executive part
+  if (!techText && fullResp.length > 100) {
+    const ee = fullResp.indexOf('[EXECUTIVE_END]');
+    techText = ee > 0 ? fullResp.slice(ee + 15).trim() : fullResp;
+  }
+  // Priority 4: analysis field
+  if (!techText) techText = aria.analysis || '';
+
+  if (techText) {
+    currentTechReport = techText;
+
+    // Detect section format: [1] numbered OR **TITLE** markdown
+    const hasNumbered = /\[\d+\]/.test(techText);
+    const hasMarkdown = /\*\*[A-Z]/.test(techText);
+
+    let sections = [];
+    if (hasNumbered) {
+      // Split on [1], [2], etc.
+      sections = techText.split(/(?=\[\d+\])/).filter(s => s.trim());
+    } else if (hasMarkdown) {
+      // Split on lines that are **TITLE** (header lines)
+      sections = techText.split(/(?=\n\*\*[^\n*]+\*\*\n)/).filter(s => s.trim());
+    } else {
+      sections = [techText];
+    }
+
+    sections.forEach(section => {
+      if (!section.trim()) return;
+      const div = document.createElement('div');
+      div.className = 'tech-section';
+
+      // Detect header
+      const numMatch = section.match(/^\[(\d+)\]\s*(.+?)(?:\n|$)/);
+      const mdMatch = section.match(/^\*\*\n?([^\n*]+)\*\*/);
+      const hdrEl = document.createElement('div');
+      hdrEl.className = 'tech-section-hdr';
+      let body = section;
+
+      if (numMatch) {
+        hdrEl.textContent = numMatch[2].replace(/\*\*/g,'').trim();
+        body = section.slice(numMatch[0].length).trim();
+      } else if (mdMatch) {
+        hdrEl.textContent = mdMatch[1].replace(/\*\*/g,'').trim();
+        body = section.slice(mdMatch[0].length).trim();
+      } else {
+        // No header — just show content
+        const firstLine = section.split('\n')[0].replace(/\*\*/g,'').trim();
+        hdrEl.textContent = firstLine.slice(0, 80);
+        body = section.split('\n').slice(1).join('\n').trim();
+      }
+      div.appendChild(hdrEl);
+
+      if (body) {
+        body.split('\n').forEach(line => {
+          const clean = line.replace(/\*\*([^*]*)\*\*/g,'$1').replace(/\*([^*]*)\*/g,'$1');
+          if (!clean.trim()) { div.appendChild(document.createElement('br')); return; }
+          const p = document.createElement('p');
+          p.style.cssText = 'margin:3px 0;font-size:0.7rem;line-height:1.75;padding:0 12px;';
+          if (/CONFIRMED|MALICIOUS|CRITICAL/.test(clean)) p.style.color = 'var(--red)';
+          else if (/LIKELY|SUSPICIOUS|WARNING/.test(clean)) p.style.color = 'var(--amber)';
+          else if (/^[\|]?\s*T1[0-9]/.test(clean.trim())) p.style.color = 'var(--blue)';
+          else if (/NO EVIDENCE/.test(clean)) p.style.color = 'var(--text-dim)';
+          else if (/^3[a-f]\./.test(clean.trim())) { p.style.color = 'var(--green)'; p.style.fontWeight = 'bold'; }
+          else p.style.color = 'var(--text)';
+          p.textContent = clean;
+          div.appendChild(p);
+        });
+      }
+      pane.appendChild(div);
+    });
+  }
+
+  if (!rawData) return;
+  const h = rawData.hashes||{}, pe = rawData.pe_info||{}, vt = rawData.virustotal||{};
+  const capadata = rawData.capa||{}, strs = rawData.strings||{};
+  const sects = pe.sections||[], suspImps = pe.suspicious_imports||[];
+  const mitre = capadata.mitre_attack||[], caps = capadata.capabilities||[];
+  const interesting = strs.interesting||[];
+  const mal = vt.malicious||0;
+
+  function addRawSection(title, rows) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tech-section';
+    const hdr = document.createElement('div');
+    hdr.className = 'tech-section-hdr';
+    hdr.style.cssText = 'background:rgba(0,255,65,0.025);border-left:3px solid rgba(0,255,65,0.25);color:rgba(0,255,65,0.6);font-size:0.55rem;';
+    hdr.textContent = '▸ RAW EVIDENCE: '+title;
+    wrap.appendChild(hdr);
+    const tbl = document.createElement('table');
+    tbl.className = 'ioc-table';
+    rows.forEach(([k,v,c]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td style="color:var(--text-dim);width:130px;white-space:nowrap;">'+escHtml(String(k))+'</td><td style="color:'+(c||'var(--text)')+';">'+escHtml(String(v||'N/A'))+'</td>';
+      tbl.appendChild(tr);
+    });
+    wrap.appendChild(tbl);
+    pane.appendChild(wrap);
+  }
+
+  addRawSection('Sample Hashes', [
+    ['Filename', rawData.filename],
+    ['MD5', h.md5],
+    ['SHA1', h.sha1],
+    ['SHA256', h.sha256, 'var(--amber)'],
+    ['ssdeep', h.ssdeep],
+    ['Size', rawData.size?(rawData.size/1048576).toFixed(2)+' MB':'N/A'],
+    ['Type', rawData.file_type?rawData.file_type.description:'N/A'],
+  ]);
+
+  addRawSection('VirusTotal', [
+    ['Detection', vt.detection_ratio, mal>0?'var(--red)':'var(--green)'],
+    ['Malicious', String(mal), mal>0?'var(--red)':'var(--text)'],
+    ['Suspicious', String(vt.suspicious||0)],
+    ['Undetected', String(vt.undetected||0)],
+    ['VT Link', vt.vt_link, 'var(--blue)'],
+  ]);
+
+  addRawSection('PE Header', [
+    ['Machine', pe.machine],
+    ['Compile Time', pe.compile_time],
+    ['Entry Point', pe.entrypoint],
+    ['Image Base', pe.image_base],
+    ['Imphash', pe.imphash, 'var(--amber)'],
+  ]);
+
+  if(sects.length) {
+    addRawSection('Section Entropy', sects.map(s=>{
+      const e=parseFloat(s.entropy||0);
+      const label=e>7.8?' ⚠ ENCRYPTED':e>7.0?' ⚠ PACKED':e<0.5?' (zeroed)':'';
+      const sz=s.raw_size?(s.raw_size>1048576?(s.raw_size/1048576).toFixed(2)+'MB':(s.raw_size/1024).toFixed(1)+'KB'):'N/A';
+      return [s.name||'?', 'entropy:'+e.toFixed(4)+'  size:'+sz+label, e>7.0?'var(--red)':e<0.5?'var(--text-dim)':'var(--text)'];
+    }));
+  }
+
+  if(suspImps.length) addRawSection('Suspicious Imports', suspImps.map(i=>['⚠',i,'var(--red)']));
+  if(interesting.length) addRawSection('Interesting Strings', interesting.slice(0,30).map(s=>['string',s,'var(--blue)']));
+  // DIE section
+  const die = rawData.die || {};
+  const dieResults = die.results || [];
+  if (dieResults.length) {
+    const dieRows = dieResults.map(d => {
+      const label = d.type || 'detect';
+      const val = d.name ? `${d.name}${d.version?' '+d.version:''}${d.info?' ['+d.info+']':''}` : (d.value || d.raw || '');
+      const isPacker = /pack|crypt|obfusc|protect|compress/i.test(val);
+      const isCompiler = /compiler|linker|visual studio|gcc|clang/i.test(label+val);
+      const color = isPacker ? 'var(--red)' : isCompiler ? 'var(--amber)' : 'var(--text)';
+      return [label, val, color];
+    });
+    addRawSection('Detect-It-Easy (DIE)', dieRows);
+  } else {
+    addRawSection('Detect-It-Easy (DIE)', [['Result', die.error || 'No detections', 'var(--text-dim)']]);
+  }
+
+  // FLOSS UI PANEL
+  const flossData = rawData.floss || {};
+  const flossFiltered = flossData.filtered || {};
+  const flossTotalStatic = flossData.total_static_strings || 0;
+  const flossKept = flossData.total_filtered || 0;
+  const flossError = flossData.error || null;
+  if(flossTotalStatic > 0 || flossError) {
+    const flossRows = [];
+    flossRows.push(['Total Static Strings', String(flossTotalStatic), 'var(--text)']);
+    flossRows.push(['Analyst Strings Kept', String(flossKept), 'var(--text)']);
+    flossRows.push(['Status', flossError ? 'ERROR: '+flossError : 'OK -- static mode only (packed binary)', flossError ? 'var(--red)' : 'var(--green)']);
+    const buckets = [
+      ['version','VERSION RESOURCE','var(--red)'],
+      ['pki','PKI / CERTIFICATE','var(--amber)'],
+      ['shell','SHELL / EXECUTION','var(--red)'],
+      ['crypto','CRYPTO / OBFUSCATION','var(--amber)'],
+      ['network_or_path','NETWORK / PATH / REGISTRY','var(--blue)'],
+      ['multiword','OTHER MULTI-WORD','var(--text)'],
+    ];
+    buckets.forEach(([key, label, color]) => {
+      const items = flossFiltered[key] || [];
+      if(!items.length) return;
+      flossRows.push([label + ' ('+items.length+')', '', 'var(--text-dim)']);
+      items.slice(0,20).forEach(s => flossRows.push(['  •', String(s), color]));
+    });
+    addRawSection('FLOSS Static String Extraction', flossRows);
+  }
+  if(caps.length) addRawSection('CAPA Capabilities', caps.slice(0,20).map(c=>['capability',c,'var(--amber)']));
+  else addRawSection('CAPA', [['Result','ZERO MATCHES — packed binary, encrypted payload not analyzable statically','var(--amber)']]);
+  if(mitre.length) addRawSection('MITRE ATT&CK', mitre.map(m=>[m.id||'?',(m.tactic||'')+' — '+(m.technique||''),'var(--blue)']));
+}
+
+
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderRawReport(report) {
+  const pane = document.getElementById('tab-raw-pane');
+  pane.innerHTML = '';
+  const lines = report.lines || [];
+  if (!lines.length) {
+    pane.innerHTML = '<div style="color:var(--text-dim);padding:12px;">No raw data available.</div>';
+    return;
+  }
+  lines.forEach(line => {
+    const div = document.createElement('div');
+    div.style.cssText = 'font-size:0.68rem;line-height:1.8;padding:1px 0;white-space:pre-wrap;word-break:break-all;';
+    const t = line.text || '';
+    if (/MALICIOUS|CRITICAL|ERROR/.test(t)) div.style.color = 'var(--red)';
+    else if (/SUSPICIOUS|HIGH ENTROPY|⚠/.test(t)) div.style.color = 'var(--amber)';
+    else if (/^(MD5|SHA|ssdeep|Filename|Size|VERDICT|Score)/.test(t.trim())) div.style.color = 'var(--green)';
+    else if (/^http/.test(t.trim())) div.style.color = 'var(--blue)';
+    else if (/^[%═━▓]/.test(t.trim())) div.style.color = 'rgba(0,255,65,0.2)';
+    else div.style.color = 'var(--text)';
+    div.textContent = t;
+    pane.appendChild(div);
+  });
+}
+
+function showReport(report) {
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('anstate').className = 'analyzing-state';
+  document.getElementById('report-tabs').style.display = 'flex';
+
+  const aria = (report.data && report.data.aria) || {};
+  const rawData = report.data || {};
+  window._lastRawData = rawData;
+  window.currentVerdictText = report.verdict;
+  renderExecReport(aria, report.verdict, report.vclass);
+  renderTechReport(aria, report, rawData);
+  renderRawReport(report);
+
+  lastReport = (aria.executive_report||'') + '\n\n' + (aria.technical_report||aria.analysis||'') + '\n\n' + report.lines.map(l=>l.text).join('\n');
+  document.getElementById('bcopy').className = 'act-btn on';
+  document.getElementById('bclear').className = 'act-btn on';
+  document.getElementById('bpdf').className = 'act-btn on';
+  switchTab('exec');
+}
+
+
+async function exportPDF() {
+  if (!lastReport && !window.lastAnalysisData) {
+    alert('No analysis data available. Run an analysis first.');
+    return;
+  }
+
+  const btn = document.getElementById('bpdf');
+  const origText = btn.textContent;
+  btn.textContent = 'GENERATING...';
+  btn.disabled = true;
+
+  try {
+    // Build the payload from current analysis data
+    const payload = window.lastAnalysisData || {};
+    if (window.lastAnalysisNotes) {
+      payload.analyst_notes = window.lastAnalysisNotes;
+    }
+
+    const resp = await fetch('/generate_pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({error: 'Unknown error'}));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const cd   = resp.headers.get('Content-Disposition') || '';
+    const fn   = cd.match(/filename=(.+)/)?.[1] || 'ARIA_Report.pdf';
+    a.href = url; a.download = fn;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+  } catch(e) {
+    alert('PDF generation failed: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+}
+
+function showError(filename, msg) {
+  const t = document.getElementById('tab-raw-pane');
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('anstate').className = 'analyzing-state';
+  t.querySelectorAll('.rl').forEach(e=>e.remove());
+  const s = document.createElement('span');
+  s.className = 'rl warn';
+  s.textContent = 'ANALYSIS FAILED: '+filename+'\n'+msg;
+  t.appendChild(s);
+}
+
+async function lookupHash() {
+  const hash = document.getElementById('hi').value.trim();
+  if (!hash) return;
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('anstate').className = 'analyzing-state on';
+  document.getElementById('an-step').textContent = 'Querying VirusTotal for '+hash.slice(0,16)+'...';
+  document.getElementById('an-label').textContent = 'QUERYING VT';
+  document.getElementById('an-timer').textContent = '00:00';
+  startTimer();
+  try {
+    const r = await fetch(SANDBOX+'/analyze/hash', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({hash})
+    });
+    const data = await r.json();
+    stopTimer();
+    const vt = data.virustotal || data;
+    const mal = vt.malicious || 0;
+    const verdict = mal > 10 ? 'MALICIOUS' : mal > 0 ? 'SUSPICIOUS' : 'CLEAN';
+    const vclass = mal > 10 ? 'mal' : mal > 0 ? 'sus' : 'cln';
+    const lines = [];
+    const L = (t,c='') => lines.push({text:t,cls:c});
+    L('╔═══════════════════════════════════════════════════════════════╗','hdr');
+    L('║            ARIA — VT HASH LOOKUP                              ║','hdr');
+    L('╚═══════════════════════════════════════════════════════════════╝','hdr');
+    L('');
+    L('Hash       : '+hash);
+    L('');
+    if (!vt.found) {
+      L('NOT FOUND IN VIRUSTOTAL','warn');
+      L('  Hash has no VT record — may be new, private, or clean.','lbl');
+    } else {
+      L('VERDICT    : '+verdict, vclass);
+      L('Detections : '+(vt.detection_ratio||'N/A'));
+      L('  Malicious  : '+(vt.malicious||0));
+      L('  Suspicious : '+(vt.suspicious||0));
+      L('  Undetected : '+(vt.undetected||0));
+      L('  Harmless   : '+(vt.harmless||0));
+      L('VT Link    : '+(vt.vt_link||'N/A'),'ioc');
+    }
+    L('');
+    L('ANALYST: ARIA v1.0  |  '+new Date().toISOString().replace('T',' ').slice(0,19)+' UTC','lbl');
+    L('═══════════════════════════════════════════════════════════════','hdr');
+    document.getElementById('anstate').className = 'analyzing-state';
+    const terminal = document.getElementById('terminal');
+    terminal.querySelectorAll('.rl').forEach(e=>e.remove());
+    lines.forEach(({text,cls}) => {
+      const s = document.createElement('span');
+      s.className = 'rl'+(cls?' '+cls:'');
+      s.textContent = text;
+      terminal.appendChild(s);
+    });
+    lastReport = lines.map(l=>l.text).join('\n');
+    document.getElementById('bcopy').className = 'act-btn on';
+    document.getElementById('bclear').className = 'act-btn on';
+  } catch(err) {
+    stopTimer();
+    showError(hash, err.message);
+  }
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(lastReport).then(() => {
+    const b = document.getElementById('bcopy');
+    b.textContent = 'COPIED';
+    setTimeout(()=>b.textContent='COPY',2000);
+  });
+}
+
+function clearReport() {
+  document.getElementById('tab-exec-pane').innerHTML = '<div class="empty-state" id="empty"><div class="wm">ARIA</div><div class="em-hint">AWAITING SAMPLE INPUT</div><div class="em-hint2">Drop a file or submit a hash to begin</div></div>';
+  document.getElementById('tab-tech-pane').innerHTML = '';
+  document.getElementById('tab-raw-pane').innerHTML = '';
+  document.getElementById('report-tabs').style.display = 'none';
+  document.getElementById('bcopy').className = 'act-btn';
+  document.getElementById('bclear').className = 'act-btn';
+  document.getElementById('bpdf').className = 'act-btn';
+  lastReport = ''; currentExecReport = ''; currentTechReport = '';
+  files = files.filter(f=>f.status!=='done');
+  renderQueue();
+  document.getElementById('abtn').disabled = files.length === 0;
+}
+</script>
+</body>
+</html>
