@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA - Analytics Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0a0a;color:#e0e0e0;font-family:'Inter',sans-serif;min-height:100vh;}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid #1a1a1a;}
+  .nav-brand{display:flex;align-items:center;gap:12px;}
+  .nav-logo{font-size:24px;font-weight:900;letter-spacing:6px;color:#cc0000;text-shadow:0 0 20px rgba(204,0,0,0.3);}
+  .nav-tag{font-size:10px;color:#555;letter-spacing:3px;text-transform:uppercase;}
+  .nav-links{display:flex;gap:24px;align-items:center;}
+  .nav-links a{color:#666;font-size:13px;text-decoration:none;letter-spacing:1px;}
+  .nav-links a:hover{color:#cc0000;}
+  .nav-btn{background:#cc0000;color:white;border:none;padding:8px 20px;font-size:12px;letter-spacing:2px;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;font-weight:600;}
+
+  .dash-header{padding:32px 48px 16px;display:flex;justify-content:space-between;align-items:center;}
+  .dash-header h1{font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;}
+  .dash-header h1 span{color:#cc0000;}
+  .live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00cc44;margin-right:8px;animation:pulse 2s infinite;}
+  .refresh-info{font-size:10px;color:#333;letter-spacing:1px;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+  .dash{max-width:1200px;margin:0 auto;padding:0 48px;}
+
+  /* Stat cards */
+  .stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:#1a1a1a;margin-bottom:24px;}
+  .stat-card{background:#0a0a0a;padding:24px;text-align:center;}
+  .stat-card:hover{background:#111;}
+  .stat-val{font-size:28px;font-weight:900;color:#cc0000;margin-bottom:4px;}
+  .stat-val.green{color:#00cc44;}
+  .stat-val.yellow{color:#cccc00;}
+  .stat-label{font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;}
+
+  /* Grid layout */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:24px;}
+
+  /* Panel */
+  .panel{background:#111;border:1px solid #1a1a1a;padding:24px;}
+  .panel h3{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#cc0000;margin-bottom:16px;}
+
+  /* Bar chart */
+  .bar-chart{display:flex;flex-direction:column;gap:8px;}
+  .bar-row{display:flex;align-items:center;gap:12px;}
+  .bar-label{font-size:11px;color:#888;width:100px;text-align:right;flex-shrink:0;}
+  .bar-track{flex:1;height:20px;background:#1a1a1a;position:relative;}
+  .bar-fill{height:100%;transition:width 0.5s ease;}
+  .bar-fill.red{background:#cc0000;}
+  .bar-fill.yellow{background:#cccc00;}
+  .bar-fill.green{background:#00cc44;}
+  .bar-fill.blue{background:#0066cc;}
+  .bar-fill.purple{background:#9900cc;}
+  .bar-count{font-size:11px;color:#555;width:40px;flex-shrink:0;}
+
+  /* Table */
+  .scan-table{width:100%;border-collapse:collapse;}
+  .scan-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;text-align:left;padding:8px 12px;border-bottom:1px solid #1a1a1a;}
+  .scan-table td{padding:8px 12px;font-size:12px;border-bottom:1px solid #111;}
+  .scan-table tr:hover td{background:#1a1a1a;}
+  .verdict-mal{color:#cc0000;font-weight:600;}
+  .verdict-sus{color:#cccc00;font-weight:600;}
+  .verdict-clean{color:#00cc44;font-weight:600;}
+
+  /* Services list */
+  .svc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a1a1a;}
+  .svc-row:last-child{border:none;}
+  .svc-name{font-size:12px;color:#ccc;}
+  .svc-count{font-size:12px;color:#cc0000;font-weight:700;}
+
+  /* Daily chart */
+  .daily-chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:8px;}
+  .daily-bar{flex:1;background:#cc0000;min-width:20px;transition:height 0.5s;position:relative;}
+  .daily-bar:hover{background:#ee1111;}
+  .daily-label{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:8px;color:#555;}
+  .daily-val{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:9px;color:#888;}
+
+  .empty{color:#333;font-size:12px;text-align:center;padding:24px;}
+
+  footer{padding:24px 48px;border-top:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;margin-top:40px;}
+  footer p{font-size:11px;color:#333;letter-spacing:1px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand"><div>
+    <div class="nav-logo">ARIA</div>
+    <div class="nav-tag">Automated Response & Intelligence Agent</div>
+  </div></div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/store">Store</a>
+    <a href="/analytics">Analytics</a>
+    <a href="/portal">My Account</a>
+    <a class="nav-btn" href="#" onclick="fetch('/api/logout',{method:'POST'}).then(function(){location.href='/'})">SIGN OUT</a>
+  </div>
+</nav>
+
+<div class="dash-header">
+  <h1><span class="live-dot"></span>Analytics <span>Dashboard</span></h1>
+  <span class="refresh-info">AUTO-REFRESH 30S</span>
+</div>
+
+<div class="dash">
+
+<!-- Top stats -->
+<div class="stat-row">
+  <div class="stat-card"><div class="stat-val" id="sTotalScans">0</div><div class="stat-label">Total Scans</div></div>
+  <div class="stat-card"><div class="stat-val" id="sThreats">0</div><div class="stat-label">Threats</div></div>
+  <div class="stat-card"><div class="stat-val green" id="sIOCs">0</div><div class="stat-label">IOCs</div></div>
+  <div class="stat-card"><div class="stat-val yellow" id="sUsers">0</div><div class="stat-label">Users</div></div>
+  <div class="stat-card"><div class="stat-val" id="sOrders">0</div><div class="stat-label">Orders</div></div>
+  <div class="stat-card"><div class="stat-val green" id="sRevenue">$0</div><div class="stat-label">Revenue</div></div>
+</div>
+
+<div class="grid-2">
+  <!-- Threat Breakdown -->
+  <div class="panel">
+    <h3>Threat Distribution</h3>
+    <div class="bar-chart" id="threatChart"><div class="empty">No scan data yet</div></div>
+  </div>
+
+  <!-- Scans per Day -->
+  <div class="panel">
+    <h3>Scans (Last 7 Days)</h3>
+    <div class="daily-chart" id="dailyChart"><div class="empty" style="width:100%;">No recent scans</div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Top YARA -->
+  <div class="panel">
+    <h3>Top YARA Matches</h3>
+    <div class="bar-chart" id="yaraChart"><div class="empty">No YARA data yet</div></div>
+  </div>
+
+  <!-- Active Services -->
+  <div class="panel">
+    <h3>Active Services</h3>
+    <div id="servicesList"><div class="empty">No active services</div></div>
+  </div>
+</div>
+
+<!-- Recent Scans Table -->
+<div class="panel" style="margin-bottom:24px;">
+  <h3>Recent Scan Activity</h3>
+  <div style="overflow-x:auto;">
+    <table class="scan-table">
+      <thead><tr>
+        <th>File</th><th>SHA256</th><th>Verdict</th><th>Score</th><th>Label</th><th>Analyst</th><th>Time</th>
+      </tr></thead>
+      <tbody id="scanTable"><tr><td colspan="7" class="empty">No scans recorded</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<footer><p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p></footer>
+
+<script>
+function loadAnalytics(){
+  fetch('/api/analytics').then(function(r){return r.json();}).then(function(d){
+    // Stats
+    document.getElementById('sTotalScans').textContent=d.total_scans||0;
+    document.getElementById('sThreats').textContent=d.threats||0;
+    document.getElementById('sIOCs').textContent=d.iocs||0;
+    document.getElementById('sUsers').textContent=d.total_users||0;
+    document.getElementById('sOrders').textContent=d.total_orders||0;
+    document.getElementById('sRevenue').textContent='$'+(d.revenue||0).toFixed(0);
+
+    // Threat breakdown
+    var tb=d.threat_breakdown||[];
+    if(tb.length>0){
+      var max=Math.max.apply(null,tb.map(function(t){return t.cnt;}));
+      var colors={malicious:'red',suspicious:'yellow',clean:'green',unknown:'blue'};
+      var html='';
+      for(var i=0;i<tb.length;i++){
+        var pct=max>0?(tb[i].cnt/max*100):0;
+        var c=colors[tb[i].verdict]||'purple';
+        html+='<div class="bar-row"><span class="bar-label">'+(tb[i].verdict||'unknown')+'</span>'
+          +'<div class="bar-track"><div class="bar-fill '+c+'" style="width:'+pct+'%"></div></div>'
+          +'<span class="bar-count">'+tb[i].cnt+'</span></div>';
+      }
+      document.getElementById('threatChart').innerHTML=html;
+    }
+
+    // Daily scans
+    var ds=d.daily_scans||[];
+    if(ds.length>0){
+      var dmax=Math.max.apply(null,ds.map(function(x){return x.cnt;}));
+      var html='';
+      for(var i=0;i<ds.length;i++){
+        var h=dmax>0?(ds[i].cnt/dmax*100):0;
+        var label=ds[i].day?ds[i].day.substring(5):'';
+        html+='<div class="daily-bar" style="height:'+Math.max(h,4)+'%">'
+          +'<div class="daily-val">'+ds[i].cnt+'</div>'
+          +'<div class="daily-label">'+label+'</div></div>';
+      }
+      document.getElementById('dailyChart').innerHTML=html;
+    }
+
+    // YARA top
+    var yt=d.yara_top||[];
+    if(yt.length>0){
+      var ymax=Math.max.apply(null,yt.map(function(y){return y.cnt;}));
+      var html='';
+      for(var i=0;i<yt.length;i++){
+        var pct=ymax>0?(yt[i].cnt/ymax*100):0;
+        html+='<div class="bar-row"><span class="bar-label">'+yt[i].indicator.substring(0,15)+'</span>'
+          +'<div class="bar-track"><div class="bar-fill red" style="width:'+pct+'%"></div></div>'
+          +'<span class="bar-count">'+yt[i].cnt+'</span></div>';
+      }
+      document.getElementById('yaraChart').innerHTML=html;
+    }
+
+    // Services
+    var sv=d.active_services||[];
+    if(sv.length>0){
+      var html='';
+      for(var i=0;i<sv.length;i++){
+        html+='<div class="svc-row"><span class="svc-name">'+sv[i].name+'</span><span class="svc-count">'+sv[i].cnt+' active</span></div>';
+      }
+      document.getElementById('servicesList').innerHTML=html;
+    }
+
+    // Recent scans
+    var rs=d.recent_scans||[];
+    if(rs.length>0){
+      var html='';
+      for(var i=0;i<rs.length;i++){
+        var s=rs[i];
+        var vc='verdict-clean';
+        if(s.verdict==='malicious')vc='verdict-mal';
+        else if(s.verdict==='suspicious')vc='verdict-sus';
+        var time=s.submitted_at?new Date(s.submitted_at).toLocaleString():'';
+        var fname=(s.filename||'').length>25?s.filename.substring(0,25)+'...':s.filename||'';
+        var hash=(s.sha256||'').substring(0,12)+'...';
+        html+='<tr><td>'+fname+'</td><td style="font-family:monospace;font-size:10px;color:#555;">'+hash+'</td>'
+          +'<td class="'+vc+'">'+(s.verdict||'pending')+'</td>'
+          +'<td>'+(s.score||'-')+'</td><td>'+(s.label||'-')+'</td>'
+          +'<td style="color:#555;">'+(s.analyst||'-')+'</td><td style="color:#333;font-size:11px;">'+time+'</td></tr>';
+      }
+      document.getElementById('scanTable').innerHTML=html;
+    }
+  }).catch(function(e){console.error('Analytics load failed:',e);});
+}
+
+loadAnalytics();
+setInterval(loadAnalytics,30000);
+</script>
+</body>
+</html>

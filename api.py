@@ -201,6 +201,87 @@ def api_stats():
         return jsonify({"total_scans": 0, "threats": 0, "iocs": 0})
 
 
+@app.route("/api/analytics")
+@require_auth
+def api_analytics():
+    """Full analytics data for the dashboard."""
+    try:
+        import db
+        # Basic counts
+        total_scans = db.get_scan_count()
+        threats = db.get_threat_count()
+        iocs = db.get_ioc_count()
+
+        # User counts
+        users = db.query_one("SELECT COUNT(*) as cnt FROM users") or {'cnt': 0}
+
+        # Order stats
+        orders = db.query_one("SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as revenue FROM orders") or {'cnt': 0, 'revenue': 0}
+
+        # Threat breakdown
+        breakdown = db.query("""
+            SELECT verdict, COUNT(*) as cnt FROM scans
+            GROUP BY verdict ORDER BY cnt DESC
+        """) or []
+
+        # Recent scans
+        recent = db.query("""
+            SELECT s.sha256, s.filename, s.verdict, s.score, s.label, s.submitted_at,
+                   u.username as analyst
+            FROM scans s LEFT JOIN users u ON s.submitted_by = u.id
+            ORDER BY s.submitted_at DESC LIMIT 20
+        """) or []
+        for r in recent:
+            if r.get('submitted_at'):
+                r['submitted_at'] = r['submitted_at'].isoformat()
+
+        # Scans per day (last 7 days)
+        daily = db.query("""
+            SELECT DATE(submitted_at) as day, COUNT(*) as cnt
+            FROM scans WHERE submitted_at > NOW() - INTERVAL '7 days'
+            GROUP BY DATE(submitted_at) ORDER BY day
+        """) or []
+        for d in daily:
+            if d.get('day'):
+                d['day'] = d['day'].isoformat()
+
+        # Top YARA matches from findings
+        yara_top = db.query("""
+            SELECT indicator, COUNT(*) as cnt FROM findings
+            WHERE category LIKE '%YARA%' OR category LIKE '%yara%'
+            GROUP BY indicator ORDER BY cnt DESC LIMIT 10
+        """) or []
+
+        # Active services
+        services = db.query("""
+            SELECT product_id, name, COUNT(*) as cnt FROM user_services
+            WHERE status = 'active' GROUP BY product_id, name ORDER BY cnt DESC
+        """) or []
+
+        return jsonify({
+            "total_scans": total_scans,
+            "threats": threats,
+            "iocs": iocs,
+            "total_users": users['cnt'],
+            "total_orders": orders['cnt'],
+            "revenue": float(orders['revenue']),
+            "threat_breakdown": [dict(r) for r in breakdown],
+            "recent_scans": [dict(r) for r in recent],
+            "daily_scans": [dict(r) for r in daily],
+            "yara_top": [dict(r) for r in yara_top],
+            "active_services": [dict(r) for r in services],
+        })
+    except Exception as e:
+        print(f"[ANALYTICS] Error: {e}")
+        return jsonify({"error": str(e), "total_scans": 0, "threats": 0, "iocs": 0, "total_users": 0,
+                        "total_orders": 0, "revenue": 0, "threat_breakdown": [], "recent_scans": [],
+                        "daily_scans": [], "yara_top": [], "active_services": []})
+
+@app.route("/analytics")
+def serve_analytics():
+    return send_from_directory(BASE_DIR, "analytics.html")
+
+
 # ══════════════════════════════════════
 #  USER REGISTRATION
 # ══════════════════════════════════════
