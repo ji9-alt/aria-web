@@ -247,6 +247,57 @@ def get_ioc_count():
 
 
 # ══════════════════════════════════════
+#  E-COMMERCE — Orders
+# ══════════════════════════════════════
+
+def ensure_orders_table():
+    """Create orders and order_items tables if they don't exist."""
+    query("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id SERIAL PRIMARY KEY,
+            order_id VARCHAR(20) UNIQUE NOT NULL,
+            customer_name VARCHAR(128) NOT NULL,
+            customer_email VARCHAR(128) NOT NULL,
+            organization VARCHAR(128),
+            total DECIMAL(10,2) NOT NULL,
+            status VARCHAR(20) DEFAULT 'confirmed',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """, fetch=False)
+    query("""
+        CREATE TABLE IF NOT EXISTS order_items (
+            id SERIAL PRIMARY KEY,
+            order_id VARCHAR(20) REFERENCES orders(order_id),
+            product_id VARCHAR(32) NOT NULL,
+            product_name VARCHAR(128) NOT NULL,
+            price DECIMAL(10,2) NOT NULL
+        )
+    """, fetch=False)
+
+def create_order(order_id, name, email, org, items, total):
+    """Insert a new order and its line items."""
+    ensure_orders_table()
+    query(
+        "INSERT INTO orders (order_id, customer_name, customer_email, organization, total) VALUES (%s,%s,%s,%s,%s)",
+        (order_id, name, email, org, total), fetch=False
+    )
+    for item in items:
+        query(
+            "INSERT INTO order_items (order_id, product_id, product_name, price) VALUES (%s,%s,%s,%s)",
+            (order_id, item['id'], item['name'], item['price']), fetch=False
+        )
+
+def get_orders(limit=100):
+    """Get all orders, newest first."""
+    ensure_orders_table()
+    return query("SELECT * FROM orders ORDER BY created_at DESC LIMIT %s", (limit,))
+
+def get_order_items(order_id):
+    """Get items for a specific order."""
+    return query("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+
+
+# ══════════════════════════════════════
 #  RATE LIMITING (in-memory)
 # ══════════════════════════════════════
 

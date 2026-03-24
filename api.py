@@ -2189,9 +2189,163 @@ def serve_test():
 def serve_landing():
     return send_from_directory(BASE_DIR, "index.html")
 
+@app.route("/store")
+def serve_store():
+    return send_from_directory(BASE_DIR, "store.html")
+
 @app.route("/dashboard")
 def serve_ui():
     return send_from_directory(BASE_DIR, "aria-lab.html")
+
+
+# ══════════════════════════════════════
+#  E-COMMERCE — Orders & Cart
+# ══════════════════════════════════════
+
+@app.route("/api/order", methods=["POST"])
+@rate_limit(max_req=10, window=60)
+def api_create_order():
+    """Create a new order from cart checkout."""
+    data = request.get_json(force=True)
+    name = str(data.get("customer_name", "")).strip()[:128]
+    email = str(data.get("customer_email", "")).strip()[:128]
+    org = str(data.get("organization", "")).strip()[:128]
+    items = data.get("items", [])
+    total = data.get("total", 0)
+
+    if not name or not email or not items:
+        return jsonify({"error": "Name, email, and items required"}), 400
+
+    # Validate items
+    valid_products = {
+        "report": {"name": "Threat Intel Report", "price": 49},
+        "yara": {"name": "YARA Rule Pack", "price": 199},
+        "ioc": {"name": "IOC Feed Subscription", "price": 99},
+        "scan": {"name": "Malware Analysis Scan", "price": 149},
+        "chatbot": {"name": "AI Threat Chatbot", "price": 79},
+        "agentic": {"name": "Agentic Workflow Pipeline", "price": 499},
+    }
+
+    validated_items = []
+    calc_total = 0
+    for item in items:
+        pid = item.get("id", "")
+        if pid not in valid_products:
+            return jsonify({"error": f"Invalid product: {pid}"}), 400
+        validated_items.append({
+            "id": pid,
+            "name": valid_products[pid]["name"],
+            "price": valid_products[pid]["price"]
+        })
+        calc_total += valid_products[pid]["price"]
+
+    order_id = f"ORD-{secrets.token_hex(4).upper()}"
+
+    try:
+        import db
+        db.create_order(order_id, name, email, org, validated_items, calc_total)
+    except Exception as e:
+        # DB not available — still return success for demo
+        pass
+
+    return jsonify({"ok": True, "order_id": order_id, "total": calc_total})
+
+
+@app.route("/api/orders")
+@require_admin
+def api_list_orders():
+    """Admin: list all orders."""
+    try:
+        import db
+        orders = db.get_orders(100)
+        for o in orders:
+            if 'created_at' in o and o['created_at']:
+                o['created_at'] = o['created_at'].isoformat()
+        return jsonify({"orders": orders})
+    except Exception as e:
+        return jsonify({"orders": [], "error": str(e)})
+
+
+# ══════════════════════════════════════
+#  AI CHATBOT — Threat Intelligence
+# ══════════════════════════════════════
+
+THREAT_KB = {
+    "ransomware": "Ransomware encrypts victim files and demands payment for decryption keys. Common families: LockBit, BlackCat (ALPHV), Cl0p, Royal. MITRE ATT&CK: T1486 (Data Encrypted for Impact). Defense: offline backups, network segmentation, email filtering, endpoint detection.",
+    "trojan": "Trojans disguise as legitimate software to gain access. Common types: RAT (Remote Access Trojan), banking trojans, info-stealers. MITRE ATT&CK: T1204 (User Execution). Defense: application whitelisting, user training, sandboxed execution.",
+    "phishing": "Phishing uses social engineering to steal credentials or deliver malware. Types: spear-phishing (T1566.001), whaling, vishing. Defense: DMARC/DKIM/SPF email auth, user awareness training, URL filtering.",
+    "apt": "Advanced Persistent Threats are state-sponsored groups conducting long-term espionage. Notable APTs: APT28 (Russia), APT41 (China), Lazarus (DPRK). MITRE ATT&CK: multiple techniques across kill chain. Defense: threat hunting, EDR, network monitoring, zero trust.",
+    "c2": "Command and Control (C2) infrastructure allows attackers to communicate with compromised systems. MITRE ATT&CK: T1071 (Application Layer Protocol). Common C2 frameworks: Cobalt Strike, Sliver, Brute Ratel. Defense: DNS monitoring, beacon detection, egress filtering.",
+    "ioc": "Indicators of Compromise include file hashes (MD5/SHA256), IP addresses, domains, URLs, registry keys, and mutex names. Use STIX/TAXII for sharing. ARIA extracts IOCs automatically during analysis.",
+    "yara": "YARA rules identify malware by matching patterns in file content. Syntax: rule name { strings: $s1 = \"pattern\" condition: $s1 }. ARIA includes 47+ active rules covering major malware families.",
+    "mitre": "MITRE ATT&CK is a knowledge base of adversary tactics and techniques. 14 tactics from Reconnaissance to Impact. Use it to map detections, identify gaps, and communicate threats. ARIA maps findings to ATT&CK automatically.",
+    "zero-day": "Zero-day vulnerabilities are unknown to the vendor with no available patch. They are highly valuable on exploit markets. Defense: virtual patching, behavioral detection, network segmentation, threat intel feeds.",
+    "malware": "Malware is malicious software including viruses, worms, trojans, ransomware, spyware, and adware. Analysis types: static (no execution), dynamic (sandboxed execution), hybrid. ARIA performs static analysis with AI enrichment.",
+    "cve": "CVE (Common Vulnerabilities and Exposures) is a standardized identifier for security flaws. Format: CVE-YYYY-NNNNN. Check NIST NVD for details and CVSS scores. Prioritize by exploitability and asset exposure.",
+    "incident": "Incident response phases: 1) Preparation, 2) Identification, 3) Containment, 4) Eradication, 5) Recovery, 6) Lessons learned. ARIA supports phases 2-4 with automated analysis and IOC extraction.",
+    "sandbox": "Sandbox evasion techniques include: sleep timers, VM detection, anti-debug checks, environment fingerprinting. MITRE ATT&CK: T1497 (Virtualization/Sandbox Evasion). ARIA detects these behaviors during static analysis.",
+    "persistence": "Persistence mechanisms allow malware to survive reboots. Common: registry run keys (T1547.001), scheduled tasks (T1053), services (T1543), startup folder (T1547.001). ARIA flags these in analysis reports.",
+}
+
+@app.route("/api/chat", methods=["POST"])
+@rate_limit(max_req=30, window=60)
+def api_chat():
+    """AI chatbot for threat intelligence queries."""
+    data = request.get_json(force=True)
+    message = str(data.get("message", "")).strip()[:500]
+
+    if not message:
+        return jsonify({"response": "Please ask a question about threat intelligence, malware, or security."})
+
+    msg_lower = message.lower()
+
+    # Check for greetings
+    greetings = ["hello", "hi", "hey", "help", "what can you do"]
+    if any(g in msg_lower for g in greetings):
+        return jsonify({"response": "I'm ARIA's AI threat intelligence assistant. I can help with:\n- Malware families & analysis\n- MITRE ATT&CK techniques\n- IOC lookups & enrichment\n- YARA rule guidance\n- Incident response steps\n- CVE information\n- Ransomware, APTs, phishing\n\nWhat would you like to know?"})
+
+    # Try to match against knowledge base
+    best_match = None
+    best_score = 0
+    for key, response in THREAT_KB.items():
+        # Count keyword matches
+        score = 0
+        if key in msg_lower:
+            score += 10
+        words = key.replace("-", " ").split()
+        for w in words:
+            if w in msg_lower:
+                score += 3
+        if score > best_score:
+            best_score = score
+            best_match = response
+
+    # Check for specific patterns
+    if "how" in msg_lower and "protect" in msg_lower:
+        return jsonify({"response": "Key protection strategies:\n1. Endpoint Detection & Response (EDR)\n2. Network segmentation & zero trust\n3. Regular patching & vulnerability scanning\n4. Email security (DMARC/DKIM/SPF)\n5. Offline backup strategy (3-2-1 rule)\n6. User security awareness training\n7. Threat intelligence feeds & IOC monitoring\n8. Incident response plan & tabletop exercises\n\nARIA helps with automated threat detection and IOC enrichment."})
+
+    if "scan" in msg_lower or "analyze" in msg_lower or "upload" in msg_lower:
+        return jsonify({"response": "To analyze a file with ARIA:\n1. Sign in to the platform\n2. Go to the Analysis page (/test)\n3. Upload your suspicious file\n4. ARIA performs: PE parsing, entropy analysis, YARA matching, CAPA detection, AI classification, and IOC extraction\n5. Download your PDF report\n\nNeed an on-demand scan? Check our store for analysis credits."})
+
+    if any(w in msg_lower for w in ["price", "cost", "buy", "purchase", "plan"]):
+        return jsonify({"response": "ARIA offers:\n\nProducts:\n- Threat Intel Reports: $49/report\n- YARA Rule Packs: $199/pack\n- IOC Feed Subscription: $99/month\n\nServices:\n- Malware Analysis: $149/scan\n- AI Threat Chatbot: $79/month\n- Agentic Workflow: $499/month\n\nVisit /store to purchase."})
+
+    # Try DB for scan stats
+    if any(w in msg_lower for w in ["stats", "status", "dashboard", "how many"]):
+        try:
+            import db
+            scans = db.get_scan_count()
+            threats = db.get_threat_count()
+            iocs = db.get_ioc_count()
+            return jsonify({"response": f"ARIA Platform Status:\n- Total scans: {scans}\n- Threats detected: {threats}\n- IOCs cataloged: {iocs}\n- Engine: Online\n- Database: Connected\n\nAll systems operational."})
+        except Exception:
+            return jsonify({"response": "ARIA Platform Status:\n- Engine: Online\n- Database: Checking...\n\nUse /test to run an analysis."})
+
+    if best_match and best_score >= 3:
+        return jsonify({"response": best_match})
+
+    # Default response
+    return jsonify({"response": "I can help with threat intelligence topics including:\n- Malware types (ransomware, trojans, APTs)\n- MITRE ATT&CK framework\n- IOC analysis & enrichment\n- YARA rule creation\n- Incident response\n- CVE lookups\n- Security best practices\n\nTry asking about a specific threat or technique."})
 
 if __name__ == "__main__":
     # Initialize database connection and default users

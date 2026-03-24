@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA Store - Products & Services</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#0a0a0a; color:#e0e0e0; font-family:'Inter',sans-serif; min-height:100vh;
+  }
+
+  /* Nav */
+  nav {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:20px 48px; border-bottom:1px solid #1a1a1a;
+  }
+  .nav-brand { display:flex; align-items:center; gap:12px; }
+  .nav-logo { font-size:24px; font-weight:900; letter-spacing:6px; color:#cc0000; text-shadow:0 0 20px rgba(204,0,0,0.3); }
+  .nav-tag { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; }
+  .nav-links { display:flex; gap:32px; align-items:center; }
+  .nav-links a { color:#666; font-size:13px; text-decoration:none; letter-spacing:1px; transition:color 0.2s; }
+  .nav-links a:hover { color:#cc0000; }
+  .nav-btn { background:#cc0000; color:white; border:none; padding:8px 20px; font-size:12px; letter-spacing:2px; cursor:pointer; text-decoration:none; font-family:'Inter',sans-serif; font-weight:600; }
+
+  /* Header */
+  .store-header {
+    text-align:center; padding:60px 48px 40px;
+    background:radial-gradient(ellipse at center, rgba(204,0,0,0.03) 0%, transparent 70%);
+  }
+  .store-header h1 { font-size:42px; font-weight:900; color:#fff; letter-spacing:2px; margin-bottom:8px; }
+  .store-header h1 span { color:#cc0000; }
+  .store-header p { color:#555; font-size:14px; letter-spacing:1px; }
+
+  /* Section titles */
+  .section-title {
+    font-size:11px; letter-spacing:4px; text-transform:uppercase; color:#cc0000;
+    text-align:center; padding:40px 0 24px; border-top:1px solid #1a1a1a;
+  }
+
+  /* Product grid */
+  .products {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+    background:#1a1a1a; margin:0 48px;
+  }
+  .product {
+    background:#0a0a0a; padding:40px 32px; text-align:center; transition:background 0.2s;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .product:hover { background:#111; }
+  .product-icon { font-size:40px; margin-bottom:16px; }
+  .product h3 { font-size:14px; font-weight:700; color:#fff; letter-spacing:1px; margin-bottom:8px; }
+  .product p { font-size:12px; color:#555; line-height:1.6; margin-bottom:16px; flex:1; }
+  .product-price { font-size:24px; font-weight:900; color:#cc0000; margin-bottom:16px; }
+  .product-price span { font-size:12px; color:#555; font-weight:400; }
+  .add-btn {
+    background:transparent; color:#cc0000; border:1px solid #cc0000; padding:10px 24px;
+    font-size:11px; letter-spacing:2px; cursor:pointer; font-family:'Inter',sans-serif;
+    font-weight:600; transition:all 0.2s; text-transform:uppercase;
+  }
+  .add-btn:hover { background:#cc0000; color:#fff; }
+  .add-btn.added { background:#1a3a1a; color:#00cc44; border-color:#00cc44; }
+
+  /* Cart sidebar */
+  .cart-toggle {
+    position:fixed; top:20px; right:20px; z-index:999;
+    background:#1a1a1a; border:1px solid #333; color:#cc0000; width:48px; height:48px;
+    font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s;
+  }
+  .cart-toggle:hover { border-color:#cc0000; }
+  .cart-badge {
+    position:absolute; top:-6px; right:-6px; background:#cc0000; color:#fff;
+    width:20px; height:20px; border-radius:50%; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cart-panel {
+    position:fixed; top:0; right:-420px; width:400px; height:100vh; z-index:1000;
+    background:#111; border-left:1px solid #222; padding:32px; overflow-y:auto;
+    transition:right 0.3s ease;
+  }
+  .cart-panel.open { right:0; }
+  .cart-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999;
+  }
+  .cart-overlay.open { display:block; }
+  .cart-panel h2 { font-size:12px; letter-spacing:4px; color:#cc0000; margin-bottom:24px; text-transform:uppercase; }
+  .cart-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 0; border-bottom:1px solid #1a1a1a;
+  }
+  .cart-item-info h4 { font-size:13px; color:#fff; margin-bottom:4px; }
+  .cart-item-info p { font-size:11px; color:#555; }
+  .cart-item-price { font-size:14px; font-weight:700; color:#cc0000; }
+  .cart-remove {
+    background:none; border:none; color:#333; cursor:pointer; font-size:16px;
+    margin-left:12px; transition:color 0.2s;
+  }
+  .cart-remove:hover { color:#cc0000; }
+  .cart-total {
+    display:flex; justify-content:space-between; padding:24px 0;
+    border-top:1px solid #333; margin-top:16px;
+  }
+  .cart-total span { font-size:13px; letter-spacing:2px; color:#888; }
+  .cart-total strong { font-size:20px; color:#cc0000; }
+  .checkout-btn {
+    width:100%; background:#cc0000; color:#fff; border:none; padding:14px;
+    font-size:13px; letter-spacing:2px; cursor:pointer; font-family:'Inter',sans-serif;
+    font-weight:600; transition:background 0.2s; margin-top:12px;
+  }
+  .checkout-btn:hover { background:#ee1111; }
+  .checkout-btn:disabled { background:#333; color:#555; cursor:not-allowed; }
+  .cart-empty { color:#333; font-size:13px; text-align:center; padding:60px 0; }
+
+  /* Checkout Modal */
+  .modal-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.85); z-index:2000;
+    justify-content:center; align-items:center;
+  }
+  .modal-overlay.active { display:flex; }
+  .modal {
+    background:#111; border:1px solid #222; padding:48px; width:440px; position:relative;
+  }
+  .modal h2 {
+    font-size:12px; letter-spacing:4px; text-transform:uppercase;
+    color:#cc0000; margin-bottom:24px; text-align:center;
+  }
+  .modal input, .modal select {
+    width:100%; background:#0a0a0a; border:1px solid #222; color:#e0e0e0;
+    padding:12px 16px; font-size:13px; font-family:'Inter',sans-serif;
+    margin-bottom:12px; outline:none; transition:border-color 0.2s;
+  }
+  .modal input:focus { border-color:#cc0000; }
+  .modal label { font-size:11px; color:#555; letter-spacing:1px; display:block; margin-bottom:4px; }
+  .modal .row { display:flex; gap:12px; }
+  .modal .row > div { flex:1; }
+  .modal button.submit-btn {
+    width:100%; background:#cc0000; color:white; border:none; padding:14px;
+    font-size:13px; letter-spacing:2px; cursor:pointer; font-family:'Inter',sans-serif;
+    font-weight:600; margin-top:8px;
+  }
+  .modal .close {
+    position:absolute; top:16px; right:20px; color:#555; cursor:pointer;
+    font-size:18px; background:none; border:none;
+  }
+  .modal .close:hover { color:#cc0000; }
+  .order-success {
+    text-align:center; padding:40px 0;
+  }
+  .order-success h3 { color:#00cc44; font-size:16px; margin-bottom:8px; }
+  .order-success p { color:#555; font-size:13px; line-height:1.6; }
+  .order-success .order-id { color:#cc0000; font-size:18px; font-weight:700; margin:16px 0; letter-spacing:2px; }
+
+  /* AI Chatbot */
+  .chat-toggle {
+    position:fixed; bottom:24px; right:24px; z-index:998;
+    background:#cc0000; color:#fff; width:56px; height:56px; border-radius:50%;
+    border:none; font-size:24px; cursor:pointer; box-shadow:0 4px 20px rgba(204,0,0,0.4);
+    transition:transform 0.2s;
+  }
+  .chat-toggle:hover { transform:scale(1.1); }
+  .chat-panel {
+    position:fixed; bottom:96px; right:24px; width:380px; height:500px;
+    background:#111; border:1px solid #222; z-index:998;
+    display:none; flex-direction:column;
+  }
+  .chat-panel.open { display:flex; }
+  .chat-header {
+    padding:16px 20px; border-bottom:1px solid #222;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .chat-header h3 { font-size:12px; letter-spacing:3px; color:#cc0000; text-transform:uppercase; }
+  .chat-header button { background:none; border:none; color:#555; cursor:pointer; font-size:16px; }
+  .chat-messages {
+    flex:1; overflow-y:auto; padding:16px 20px;
+  }
+  .chat-msg {
+    margin-bottom:12px; max-width:85%;
+  }
+  .chat-msg.bot { margin-right:auto; }
+  .chat-msg.user { margin-left:auto; }
+  .chat-msg .bubble {
+    padding:10px 14px; font-size:12px; line-height:1.5; border-radius:2px;
+  }
+  .chat-msg.bot .bubble { background:#1a1a1a; color:#ccc; }
+  .chat-msg.user .bubble { background:#cc0000; color:#fff; }
+  .chat-msg .meta { font-size:9px; color:#333; margin-top:4px; letter-spacing:1px; }
+  .chat-input {
+    display:flex; border-top:1px solid #222;
+  }
+  .chat-input input {
+    flex:1; background:#0a0a0a; border:none; color:#e0e0e0; padding:14px 16px;
+    font-size:12px; font-family:'Inter',sans-serif; outline:none;
+  }
+  .chat-input button {
+    background:#cc0000; color:#fff; border:none; padding:0 20px;
+    font-size:12px; cursor:pointer; letter-spacing:2px; font-family:'Inter',sans-serif;
+    font-weight:600;
+  }
+  .typing-dots span {
+    display:inline-block; width:6px; height:6px; background:#555; border-radius:50%;
+    margin:0 2px; animation:dotPulse 1.4s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay:0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes dotPulse { 0%,80%,100%{opacity:0.3;} 40%{opacity:1;} }
+
+  /* Footer */
+  footer {
+    padding:24px 48px; border-top:1px solid #1a1a1a;
+    display:flex; justify-content:space-between; align-items:center; margin-top:60px;
+  }
+  footer p { font-size:11px; color:#333; letter-spacing:1px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div>
+      <div class="nav-logo">ARIA</div>
+      <div class="nav-tag">Automated Response & Intelligence Agent</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/store">Store</a>
+    <a href="#" onclick="openLogin()">Platform</a>
+    <a class="nav-btn" href="#" onclick="openLogin()">SIGN IN</a>
+  </div>
+</nav>
+
+<!-- Cart toggle -->
+<button class="cart-toggle" onclick="toggleCart()">
+  &#x1f6d2;
+  <div class="cart-badge" id="cartBadge">0</div>
+</button>
+
+<div class="store-header">
+  <h1>ARIA <span>Store</span></h1>
+  <p>Enterprise threat intelligence products and managed security services</p>
+</div>
+
+<!-- GOODS -->
+<div class="section-title">Products</div>
+<div class="products">
+  <div class="product">
+    <div>
+      <div class="product-icon">&#x1f4c4;</div>
+      <h3>Threat Intelligence Report</h3>
+      <p>Professional PDF malware analysis report with confidence scoring, MITRE ATT&CK mapping, IOC extraction, and remediation steps. Per-file deep analysis.</p>
+    </div>
+    <div class="product-price">$49 <span>/ report</span></div>
+    <button class="add-btn" onclick="addToCart('report','Threat Intel Report',49,'product')">Add to Cart</button>
+  </div>
+  <div class="product">
+    <div>
+      <div class="product-icon">&#x1f6e1;</div>
+      <h3>YARA Rule Pack</h3>
+      <p>Curated detection rule sets covering ransomware, trojans, APT toolkits, and zero-day signatures. Updated monthly with emerging threat coverage.</p>
+    </div>
+    <div class="product-price">$199 <span>/ pack</span></div>
+    <button class="add-btn" onclick="addToCart('yara','YARA Rule Pack',199,'product')">Add to Cart</button>
+  </div>
+  <div class="product">
+    <div>
+      <div class="product-icon">&#x1f50d;</div>
+      <h3>IOC Feed Subscription</h3>
+      <p>Real-time indicators of compromise database. Includes file hashes, IPs, domains, STIX/TAXII export, and API access for SIEM integration.</p>
+    </div>
+    <div class="product-price">$99 <span>/ month</span></div>
+    <button class="add-btn" onclick="addToCart('ioc','IOC Feed Subscription',99,'subscription')">Add to Cart</button>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<div class="section-title">Services</div>
+<div class="products">
+  <div class="product">
+    <div>
+      <div class="product-icon">&#x1f9ea;</div>
+      <h3>On-Demand Malware Analysis</h3>
+      <p>Submit suspicious files for comprehensive static and dynamic analysis. Full PE inspection, behavioral analysis, YARA matching, and AI-powered classification.</p>
+    </div>
+    <div class="product-price">$149 <span>/ scan</span></div>
+    <button class="add-btn" onclick="addToCart('scan','Malware Analysis Scan',149,'service')">Add to Cart</button>
+  </div>
+  <div class="product">
+    <div>
+      <div class="product-icon">&#x1f916;</div>
+      <h3>AI Threat Chatbot</h3>
+      <p>AI-powered security assistant for real-time threat intelligence queries, IOC lookups, malware family identification, and MITRE ATT&CK technique mapping.</p>
+    </div>
+    <div class="product-price">$79 <span>/ month</span></div>
+    <button class="add-btn" onclick="addToCart('chatbot','AI Threat Chatbot',79,'subscription')">Add to Cart</button>
+  </div>
+  <div class="product">
+    <div>
+      <div class="product-icon">&#x2699;</div>
+      <h3>Agentic Workflow Pipeline</h3>
+      <p>Fully automated analysis pipeline: file intake, static scan, YARA detection, AI classification, IOC enrichment, PDF reporting, and SIEM forwarding. Zero-touch.</p>
+    </div>
+    <div class="product-price">$499 <span>/ month</span></div>
+    <button class="add-btn" onclick="addToCart('agentic','Agentic Workflow Pipeline',499,'subscription')">Add to Cart</button>
+  </div>
+</div>
+
+<!-- Cart Panel -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+<div class="cart-panel" id="cartPanel">
+  <h2>Shopping Cart</h2>
+  <div id="cartItems"></div>
+  <div id="cartFooter" style="display:none;">
+    <div class="cart-total">
+      <span>TOTAL</span>
+      <strong id="cartTotal">$0</strong>
+    </div>
+    <button class="checkout-btn" onclick="openCheckout()">PROCEED TO CHECKOUT</button>
+  </div>
+</div>
+
+<!-- Checkout Modal -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal">
+    <button class="close" onclick="closeCheckout()">&times;</button>
+    <div id="checkoutForm">
+      <h2>Checkout</h2>
+      <div id="checkoutSummary"></div>
+      <label>Full Name</label>
+      <input type="text" id="coName" placeholder="John Smith">
+      <label>Email</label>
+      <input type="email" id="coEmail" placeholder="john@company.com">
+      <label>Organization</label>
+      <input type="text" id="coOrg" placeholder="Company Inc.">
+      <div class="row">
+        <div>
+          <label>Card Number</label>
+          <input type="text" id="coCard" placeholder="4242 4242 4242 4242" maxlength="19">
+        </div>
+        <div>
+          <label>Expiry</label>
+          <input type="text" id="coExp" placeholder="MM/YY" maxlength="5">
+        </div>
+        <div>
+          <label>CVV</label>
+          <input type="text" id="coCvv" placeholder="123" maxlength="4">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="placeOrder()">PLACE ORDER</button>
+    </div>
+    <div id="checkoutSuccess" class="order-success" style="display:none;">
+      <h3>Order Confirmed</h3>
+      <div class="order-id" id="orderId">ORD-000000</div>
+      <p>Thank you for your purchase. Your products and service credentials will be delivered to your email within 15 minutes.</p>
+      <button class="submit-btn" onclick="closeCheckout();clearCart();" style="margin-top:24px;">CONTINUE SHOPPING</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Chatbot -->
+<button class="chat-toggle" id="chatToggle" onclick="toggleChat()">&#x1f916;</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <h3>ARIA AI Assistant</h3>
+    <button onclick="toggleChat()">&times;</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg bot">
+      <div class="bubble">Welcome to ARIA AI. I can help with threat intelligence, malware analysis questions, IOC lookups, and MITRE ATT&CK mapping. How can I assist you?</div>
+      <div class="meta">ARIA BOT</div>
+    </div>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Ask about threats, IOCs, malware..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()">SEND</button>
+  </div>
+</div>
+
+<footer>
+  <p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p>
+</footer>
+
+<script>
+// ═══════════════ CART ═══════════════
+var cart = JSON.parse(localStorage.getItem('aria_cart') || '[]');
+
+function saveCart() {
+  localStorage.setItem('aria_cart', JSON.stringify(cart));
+  renderCart();
+}
+
+function addToCart(id, name, price, type) {
+  cart.push({id: id, name: name, price: price, type: type, ts: Date.now()});
+  saveCart();
+  // button feedback
+  event.target.textContent = 'ADDED';
+  event.target.classList.add('added');
+  setTimeout(function() {
+    event.target.textContent = 'Add to Cart';
+    event.target.classList.remove('added');
+  }, 1500);
+}
+
+function removeFromCart(idx) {
+  cart.splice(idx, 1);
+  saveCart();
+}
+
+function clearCart() {
+  cart = [];
+  saveCart();
+}
+
+function getTotal() {
+  return cart.reduce(function(s, i) { return s + i.price; }, 0);
+}
+
+function renderCart() {
+  var badge = document.getElementById('cartBadge');
+  var items = document.getElementById('cartItems');
+  var footer = document.getElementById('cartFooter');
+  var total = document.getElementById('cartTotal');
+
+  badge.textContent = cart.length;
+  badge.style.display = cart.length > 0 ? 'flex' : 'none';
+
+  if (cart.length === 0) {
+    items.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+    footer.style.display = 'none';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < cart.length; i++) {
+    html += '<div class="cart-item">' +
+      '<div class="cart-item-info"><h4>' + cart[i].name + '</h4><p>' + cart[i].type + '</p></div>' +
+      '<div style="display:flex;align-items:center;"><span class="cart-item-price">$' + cart[i].price + '</span>' +
+      '<button class="cart-remove" onclick="removeFromCart(' + i + ')">&times;</button></div>' +
+      '</div>';
+  }
+  items.innerHTML = html;
+  footer.style.display = 'block';
+  total.textContent = '$' + getTotal();
+}
+
+function toggleCart() {
+  document.getElementById('cartPanel').classList.toggle('open');
+  document.getElementById('cartOverlay').classList.toggle('open');
+}
+
+renderCart();
+
+// ═══════════════ CHECKOUT ═══════════════
+function openCheckout() {
+  toggleCart();
+  document.getElementById('checkoutForm').style.display = 'block';
+  document.getElementById('checkoutSuccess').style.display = 'none';
+  // Build summary
+  var html = '<div style="border-bottom:1px solid #222;padding-bottom:12px;margin-bottom:16px;">';
+  for (var i = 0; i < cart.length; i++) {
+    html += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;">' +
+      '<span style="color:#888;">' + cart[i].name + '</span><span style="color:#cc0000;">$' + cart[i].price + '</span></div>';
+  }
+  html += '<div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700;">' +
+    '<span style="color:#fff;">Total</span><span style="color:#cc0000;">$' + getTotal() + '</span></div></div>';
+  document.getElementById('checkoutSummary').innerHTML = html;
+  document.getElementById('checkoutModal').classList.add('active');
+}
+
+function closeCheckout() {
+  document.getElementById('checkoutModal').classList.remove('active');
+}
+
+function placeOrder() {
+  var name = document.getElementById('coName').value.trim();
+  var email = document.getElementById('coEmail').value.trim();
+  if (!name || !email) { alert('Name and email are required.'); return; }
+
+  var orderData = {
+    customer_name: name,
+    customer_email: email,
+    organization: document.getElementById('coOrg').value.trim(),
+    items: cart,
+    total: getTotal()
+  };
+
+  fetch('/api/order', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(orderData)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.order_id) {
+      document.getElementById('orderId').textContent = d.order_id;
+      document.getElementById('checkoutForm').style.display = 'none';
+      document.getElementById('checkoutSuccess').style.display = 'block';
+    } else {
+      alert(d.error || 'Order failed');
+    }
+  })
+  .catch(function() { alert('Connection error'); });
+}
+
+// ═══════════════ LOGIN REDIRECT ═══════════════
+function openLogin() {
+  window.location.href = '/';
+}
+
+// ═══════════════ AI CHATBOT ═══════════════
+function toggleChat() {
+  document.getElementById('chatPanel').classList.toggle('open');
+  if (document.getElementById('chatPanel').classList.contains('open')) {
+    document.getElementById('chatInput').focus();
+  }
+}
+
+function addChatMsg(text, sender) {
+  var msgs = document.getElementById('chatMessages');
+  var div = document.createElement('div');
+  div.className = 'chat-msg ' + sender;
+  div.innerHTML = '<div class="bubble">' + text + '</div><div class="meta">' +
+    (sender === 'bot' ? 'ARIA BOT' : 'YOU') + '</div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  var msgs = document.getElementById('chatMessages');
+  var div = document.createElement('div');
+  div.className = 'chat-msg bot';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideTyping() {
+  var el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function sendChat() {
+  var input = document.getElementById('chatInput');
+  var text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  addChatMsg(text, 'user');
+  showTyping();
+
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: text})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    hideTyping();
+    addChatMsg(d.response || 'I could not process that request.', 'bot');
+  })
+  .catch(function() {
+    hideTyping();
+    addChatMsg('Connection error. Please try again.', 'bot');
+  });
+}
+</script>
+
+</body>
+</html>
