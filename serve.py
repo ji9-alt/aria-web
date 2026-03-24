@@ -24,4 +24,4 @@ if __name__ == "__main__":
 
     print(f"[ARIA] Starting on port {port} ({threads} threads)")
     sys.stdout.flush()
-    serve(app, host="127.0.0.1", port=port, threads=threads)
+    serve(app, host="0.0.0.0", port=port, threads=threads)
