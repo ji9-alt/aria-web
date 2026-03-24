@@ -1,6 +1,7 @@
 import re
-from flask import Flask, send_from_directory, request, jsonify
+from flask import Flask, send_from_directory, request, jsonify, make_response, abort
 from werkzeug.utils import secure_filename
+from functools import wraps
 import subprocess
 import pefile
 import os
@@ -10,9 +11,184 @@ import ppdeep
 import requests
 import json
 import time
+import secrets
 from openai import OpenAI
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("ARIA_SECRET_KEY", secrets.token_hex(32))
+
+# ══════════════════════════════════════
+#  SECURITY MIDDLEWARE
+# ══════════════════════════════════════
+
+@app.after_request
+def security_headers(response):
+    """Add security headers to every response."""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'"
+    )
+    return response
+
+def require_auth(f):
+    """Decorator: require valid session token."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.cookies.get('aria_session')
+        if not token:
+            return jsonify({"error": "Authentication required"}), 401
+        try:
+            import db
+            session = db.get_session(token)
+        except Exception:
+            session = None
+        if not session:
+            return jsonify({"error": "Invalid or expired session"}), 401
+        request.user = session
+        return f(*args, **kwargs)
+    return decorated
+
+def require_admin(f):
+    """Decorator: require admin role."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.cookies.get('aria_session')
+        if not token:
+            return jsonify({"error": "Authentication required"}), 401
+        try:
+            import db
+            session = db.get_session(token)
+        except Exception:
+            session = None
+        if not session or session.get('role') != 'admin':
+            return jsonify({"error": "Admin access required"}), 403
+        request.user = session
+        return f(*args, **kwargs)
+    return decorated
+
+def rate_limit(max_req=30, window=60):
+    """Decorator: rate limit by IP."""
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            try:
+                import db
+                if not db.check_rate_limit(request.remote_addr, f.__name__, max_req, window):
+                    return jsonify({"error": "Rate limit exceeded. Try again later."}), 429
+            except Exception:
+                pass
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
+
+
+# ══════════════════════════════════════
+#  AUTH ROUTES
+# ══════════════════════════════════════
+
+@app.route("/api/login", methods=["POST"])
+@rate_limit(max_req=10, window=60)
+def api_login():
+    """Authenticate user, return session cookie."""
+    data = request.get_json(force=True)
+    username = str(data.get("username", "")).strip()[:64]
+    password = str(data.get("password", ""))[:128]
+
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+
+    try:
+        import db
+        user = db.authenticate(username, password)
+    except Exception as e:
+        # DB not available — fall back to hardcoded for demo
+        user = None
+        if username == "admin" and password == "AriaAdmin2026!":
+            user = {"id": 0, "username": "admin", "role": "admin"}
+        elif username == "analyst" and password == "AriaAnalyst2026!":
+            user = {"id": 0, "username": "analyst", "role": "analyst"}
+
+    if not user:
+        time.sleep(1)  # Slow down brute force
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    try:
+        import db
+        token = db.create_session(user['id'], user['username'], user['role'])
+    except Exception:
+        token = secrets.token_urlsafe(32)
+
+    resp = make_response(jsonify({"ok": True, "username": user['username'], "role": user['role']}))
+    resp.set_cookie('aria_session', token, httponly=True, samesite='Strict', max_age=28800)
+    return resp
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    """Destroy session."""
+    token = request.cookies.get('aria_session')
+    if token:
+        try:
+            import db
+            db.destroy_session(token)
+        except Exception:
+            pass
+    resp = make_response(jsonify({"ok": True}))
+    resp.delete_cookie('aria_session')
+    return resp
+
+@app.route("/api/me")
+def api_me():
+    """Get current user info."""
+    token = request.cookies.get('aria_session')
+    if not token:
+        return jsonify({"authenticated": False}), 401
+    try:
+        import db
+        session = db.get_session(token)
+        if session:
+            return jsonify({"authenticated": True, "username": session['username'], "role": session['role']})
+    except Exception:
+        pass
+    return jsonify({"authenticated": False}), 401
+
+@app.route("/api/history")
+@require_auth
+def api_history():
+    """Get scan history for current user."""
+    try:
+        import db
+        if request.user.get('role') == 'admin':
+            scans = db.get_all_scans(100)
+        else:
+            scans = db.get_user_scans(request.user['user_id'], 50)
+        # Convert datetime objects to strings
+        for s in scans:
+            if 'submitted_at' in s and s['submitted_at']:
+                s['submitted_at'] = s['submitted_at'].isoformat()
+        return jsonify({"scans": scans})
+    except Exception as e:
+        return jsonify({"scans": [], "error": str(e)})
+
+@app.route("/api/stats")
+def api_stats():
+    """Get dashboard stats."""
+    try:
+        import db
+        return jsonify({
+            "total_scans": db.get_scan_count(),
+            "threats": db.get_threat_count(),
+            "iocs": db.get_ioc_count(),
+        })
+    except Exception:
+        return jsonify({"total_scans": 0, "threats": 0, "iocs": 0})
 
 # All paths relative to where api.py lives (works on Windows + Linux)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1486,6 +1662,46 @@ def static_analysis():
 
     ANALYSIS_CACHE[cache_key] = results
     save_cache(cache_key, results)
+
+    # ── Save to PostgreSQL ──
+    try:
+        import db as _db
+        _user_id = None
+        _token = request.cookies.get('aria_session')
+        if _token:
+            _sess = _db.get_session(_token)
+            if _sess:
+                _user_id = _sess.get('user_id')
+
+        _score_data = results.get("confidence_score", {})
+        _scan_id = _db.save_scan(
+            sha256=results.get("sha256", ""),
+            filename=results.get("filename", ""),
+            filesize=results.get("size", 0),
+            mime_type=results.get("magic", {}).get("mime", ""),
+            verdict=_score_data.get("label", "unknown"),
+            score=_score_data.get("total", 0),
+            label=_score_data.get("label", ""),
+            user_id=_user_id
+        )
+        if _scan_id:
+            _db.save_findings(_scan_id, _score_data.get("breakdown", []))
+            # Save IOCs if present
+            _iocs = []
+            _str_data = results.get("strings", {})
+            if isinstance(_str_data, dict):
+                for _ip in _str_data.get("ips", []):
+                    _iocs.append({"type": "ip", "value": _ip, "context": "strings"})
+                for _url in _str_data.get("urls", []):
+                    _iocs.append({"type": "url", "value": _url, "context": "strings"})
+                for _dom in _str_data.get("domains", []):
+                    _iocs.append({"type": "domain", "value": _dom, "context": "strings"})
+            if _iocs:
+                _db.save_iocs(_scan_id, _iocs)
+            results["scan_id"] = _scan_id
+    except Exception as _db_err:
+        results["db_note"] = f"DB save skipped: {str(_db_err)[:100]}"
+
     return jsonify(results)
 
 
@@ -1978,6 +2194,15 @@ def serve_ui():
     return send_from_directory(BASE_DIR, "aria-lab.html")
 
 if __name__ == "__main__":
+    # Initialize database connection and default users
+    try:
+        import db
+        db.ensure_default_users()
+        print("[ARIA] Database connected, default users ready")
+        print("[ARIA] Login: admin / AriaAdmin2026!  or  analyst / AriaAnalyst2026!")
+    except Exception as _db_err:
+        print(f"[ARIA] Database not available ({_db_err}) — running with fallback auth")
+
     cert = os.path.join(BASE_DIR, 'cert.pem')
     key = os.path.join(BASE_DIR, 'key.pem')
     if os.path.exists(cert) and os.path.exists(key):

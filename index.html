@@ -258,32 +258,47 @@ document.getElementById('password').addEventListener('keydown', function(e) {
 function doLogin() {
   var user = document.getElementById('username').value.trim();
   var pass = document.getElementById('password').value;
+  var err = document.getElementById('loginError');
 
-  // Simple client-side auth — replace with server-side later
-  var validUsers = {
-    'analyst': 'aria2026',
-    'admin': 'aria2026',
-    'demo': 'demo'
-  };
-
-  if (validUsers[user] && validUsers[user] === pass) {
-    // Store session
-    sessionStorage.setItem('aria_user', user);
-    sessionStorage.setItem('aria_role', user === 'admin' ? 'admin' : 'analyst');
-    window.location.href = '/test';
-  } else {
-    var err = document.getElementById('loginError');
+  fetch('/api/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username: user, password: pass})
+  })
+  .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+  .then(function(res) {
+    if (res.status === 200 && res.data.ok) {
+      window.location.href = '/test';
+    } else if (res.status === 429) {
+      err.textContent = 'Too many attempts. Wait 60 seconds.';
+      err.style.display = 'block';
+    } else {
+      err.textContent = 'Invalid credentials';
+      err.style.display = 'block';
+      setTimeout(function() { err.style.display = 'none'; }, 3000);
+    }
+  })
+  .catch(function() {
+    err.textContent = 'Connection error';
     err.style.display = 'block';
-    setTimeout(function() { err.style.display = 'none'; }, 3000);
-  }
+  });
 }
 
-// If already logged in, show logout in nav
-if (sessionStorage.getItem('aria_user')) {
-  var btn = document.querySelector('.nav-btn');
-  btn.textContent = 'GO TO PLATFORM';
-  btn.onclick = function() { window.location.href = '/test'; };
-}
+// Check if already logged in via server
+fetch('/api/me').then(function(r) {
+  if (r.ok) {
+    var btn = document.querySelector('.nav-btn');
+    btn.textContent = 'GO TO PLATFORM';
+    btn.onclick = function() { window.location.href = '/test'; };
+  }
+}).catch(function() {});
+
+// Load live stats
+fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+  var nums = document.querySelectorAll('.stat-num');
+  if (d.total_scans !== undefined) nums[0].textContent = d.total_scans || '0';
+  if (d.threats !== undefined) nums[1].textContent = d.threats || '0';
+}).catch(function() {});
 </script>
 
 </body>
