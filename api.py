@@ -14,15 +14,17 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-INCOMING = "/sandbox/incoming"
-CAPA_RULES = "/opt/capa-rules"
-CAPA_SIGS = "/opt/capa-sigs"
+# All paths relative to where api.py lives (works on Windows + Linux)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INCOMING = os.path.join(BASE_DIR, "incoming")
+CAPA_RULES = os.path.join(BASE_DIR, "capa-rules")
+CAPA_SIGS = os.path.join(BASE_DIR, "capa-sigs")
 VT_API_KEY = os.environ.get("VT_API_KEY", "")
 
 os.makedirs(INCOMING, exist_ok=True)
 
 ANALYSIS_CACHE = {}
-CACHE_DIR = "/sandbox/cache"
+CACHE_DIR = os.path.join(BASE_DIR, "cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 def load_cache(key):
@@ -432,8 +434,8 @@ def analyze_pe(filepath):
 def run_ghidra(filepath):
     import subprocess, json, tempfile, os, hashlib, time
     JAVA_HOME = '/usr/lib/jvm/java-21-openjdk-amd64'
-    GHIDRA    = '/opt/ghidra/support/analyzeHeadless'
-    SCRIPT    = '/opt/ghidra_scripts'
+    GHIDRA    = os.path.join(BASE_DIR, 'tools', 'ghidra', 'support', 'analyzeHeadless')
+    SCRIPT    = os.path.join(BASE_DIR, 'ghidra_scripts')
     if not os.path.exists(GHIDRA):
         return {"error": "Ghidra not installed", "available": False}
     # Cache by file hash
@@ -689,8 +691,8 @@ def run_capa(filepath):
 def run_yara(filepath):
     import glob as _glob
     YARA_RULE_DIRS = [
-        "/opt/openclaw-rules",
-        "/usr/lib/die/yara_rules",
+        os.path.join(BASE_DIR, "openclaw-rules"),
+        os.path.join(BASE_DIR, "yara_rules"),
     ]
     all_matches = []
     errors = []
@@ -1509,7 +1511,7 @@ def generate_pdf():
     Expected JSON body: the same structure returned by /analyze/static + aria_report field.
     """
     try:
-        sys.path.insert(0, '/sandbox')
+        sys.path.insert(0, BASE_DIR)
         import importlib
         import aria_report as _aria_mod
         importlib.reload(_aria_mod)
@@ -1965,15 +1967,21 @@ def generate_yara_endpoint():
 
 @app.route('/test')
 def serve_test():
-    return send_from_directory('/sandbox', 'openclaw_test.html')
+    return send_from_directory(BASE_DIR, 'openclaw_test.html')
 
 @app.route("/")
 def serve_ui():
-    return send_from_directory("/sandbox", "aria-lab.html")
+    return send_from_directory(BASE_DIR, "aria-lab.html")
 
 if __name__ == "__main__":
-    import ssl
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain('/sandbox/cert.pem', '/sandbox/key.pem')
-    app.run(host="0.0.0.0", port=5000, ssl_context=context)
+    cert = os.path.join(BASE_DIR, 'cert.pem')
+    key = os.path.join(BASE_DIR, 'key.pem')
+    if os.path.exists(cert) and os.path.exists(key):
+        import ssl
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(cert, key)
+        app.run(host="0.0.0.0", port=443, ssl_context=context)
+    else:
+        print("[ARIA] No TLS certs found, running on HTTP port 5000")
+        app.run(host="0.0.0.0", port=5000)
 
