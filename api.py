@@ -154,7 +154,16 @@ def api_me():
         import db
         session = db.get_session(token)
         if session:
-            return jsonify({"authenticated": True, "username": session['username'], "role": session['role']})
+            # Get extended profile
+            profile = db.get_user_profile(session['user_id']) or {}
+            return jsonify({
+                "authenticated": True,
+                "username": session['username'],
+                "role": session['role'],
+                "full_name": profile.get('full_name', session['username']),
+                "email": profile.get('email', ''),
+                "organization": profile.get('organization', ''),
+            })
     except Exception:
         pass
     return jsonify({"authenticated": False}), 401
@@ -189,6 +198,110 @@ def api_stats():
         })
     except Exception:
         return jsonify({"total_scans": 0, "threats": 0, "iocs": 0})
+
+
+# ══════════════════════════════════════
+#  USER REGISTRATION
+# ══════════════════════════════════════
+
+@app.route("/api/register", methods=["POST"])
+@rate_limit(max_req=5, window=60)
+def api_register():
+    """Register a new user account."""
+    data = request.get_json(force=True)
+    full_name = str(data.get("full_name", "")).strip()[:128]
+    email = str(data.get("email", "")).strip()[:128]
+    organization = str(data.get("organization", "")).strip()[:128]
+    username = str(data.get("username", "")).strip()[:32]
+    password = str(data.get("password", ""))[:128]
+    password2 = str(data.get("password2", ""))[:128]
+
+    if not full_name or not email or not username or not password:
+        return jsonify({"error": "All fields are required"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    if password != password2:
+        return jsonify({"error": "Passwords do not match"}), 400
+    if not re.match(r'^[a-zA-Z0-9_]{3,32}$', username):
+        return jsonify({"error": "Username: 3-32 chars, letters/numbers/underscores"}), 400
+    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+        return jsonify({"error": "Invalid email address"}), 400
+
+    try:
+        import db
+        user = db.register_user(username, password, full_name, email, organization)
+        if not user:
+            return jsonify({"error": "Username or email already exists"}), 409
+        return jsonify({"ok": True, "username": user['username']}), 201
+    except Exception as e:
+        return jsonify({"error": f"Registration failed: {str(e)}"}), 500
+
+
+# ══════════════════════════════════════
+#  CUSTOMER PORTAL APIs
+# ══════════════════════════════════════
+
+@app.route("/api/my/apikey")
+@require_auth
+def api_my_apikey():
+    """Get current user's API key."""
+    try:
+        import db
+        key = db.get_or_create_apikey(request.user['user_id'])
+        return jsonify({"api_key": key})
+    except Exception as e:
+        return jsonify({"api_key": None, "error": str(e)})
+
+@app.route("/api/my/apikey/regenerate", methods=["POST"])
+@require_auth
+def api_regen_apikey():
+    """Regenerate current user's API key."""
+    try:
+        import db
+        key = db.regenerate_apikey(request.user['user_id'])
+        return jsonify({"api_key": key})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/my/orders")
+@require_auth
+def api_my_orders():
+    """Get current user's order history."""
+    try:
+        import db
+        orders = db.get_user_orders(request.user['user_id'])
+        for o in orders:
+            if 'created_at' in o and o['created_at']:
+                o['created_at'] = o['created_at'].isoformat()
+        return jsonify({"orders": orders})
+    except Exception as e:
+        return jsonify({"orders": [], "error": str(e)})
+
+@app.route("/api/my/services")
+@require_auth
+def api_my_services():
+    """Get current user's active services."""
+    try:
+        import db
+        services = db.get_user_services(request.user['user_id'])
+        for s in services:
+            if 'activated_at' in s and s['activated_at']:
+                s['activated_at'] = s['activated_at'].isoformat()
+        return jsonify({"services": services})
+    except Exception as e:
+        return jsonify({"services": [], "error": str(e)})
+
+@app.route("/api/my/downloads")
+@require_auth
+def api_my_downloads():
+    """Get current user's available downloads."""
+    try:
+        import db
+        downloads = db.get_user_downloads(request.user['user_id'])
+        return jsonify({"downloads": downloads})
+    except Exception as e:
+        return jsonify({"downloads": [], "error": str(e)})
+
 
 # All paths relative to where api.py lives (works on Windows + Linux)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -2193,9 +2306,36 @@ def serve_landing():
 def serve_store():
     return send_from_directory(BASE_DIR, "store.html")
 
+@app.route("/portal")
+def serve_portal():
+    return send_from_directory(BASE_DIR, "portal.html")
+
 @app.route("/dashboard")
 def serve_ui():
     return send_from_directory(BASE_DIR, "aria-lab.html")
+
+@app.route("/api/download/<product_id>")
+@require_auth
+def api_download(product_id):
+    """Serve digital product downloads."""
+    product_id = re.sub(r'[^a-z]', '', product_id)
+    try:
+        import db
+        if not db.user_has_download(request.user['user_id'], product_id):
+            return jsonify({"error": "You haven't purchased this product"}), 403
+    except Exception:
+        pass
+
+    download_files = {
+        "report": ("ARIA_Sample_Threat_Report.pdf", "application/pdf"),
+        "yara": ("ARIA_YARA_Rules_v2.zip", "application/zip"),
+    }
+    if product_id in download_files:
+        fname, mime = download_files[product_id]
+        fpath = os.path.join(BASE_DIR, "downloads", fname)
+        if os.path.exists(fpath):
+            return send_from_directory(os.path.join(BASE_DIR, "downloads"), fname, mimetype=mime)
+    return jsonify({"info": "Download will be available soon. Check your email for the delivery link."})
 
 
 # ══════════════════════════════════════
@@ -2203,52 +2343,84 @@ def serve_ui():
 # ══════════════════════════════════════
 
 @app.route("/api/order", methods=["POST"])
+@require_auth
 @rate_limit(max_req=10, window=60)
 def api_create_order():
-    """Create a new order from cart checkout."""
+    """Create order after PayPal payment capture."""
     data = request.get_json(force=True)
-    name = str(data.get("customer_name", "")).strip()[:128]
-    email = str(data.get("customer_email", "")).strip()[:128]
-    org = str(data.get("organization", "")).strip()[:128]
     items = data.get("items", [])
-    total = data.get("total", 0)
+    paypal_order_id = str(data.get("paypal_order_id", "")).strip()[:64]
+    paypal_payer = str(data.get("paypal_payer", "")).strip()[:128]
+    paypal_status = str(data.get("paypal_status", "")).strip()[:32]
+    billing_email = str(data.get("billing_email", "")).strip()[:128]
 
-    if not name or not email or not items:
-        return jsonify({"error": "Name, email, and items required"}), 400
+    if not items:
+        return jsonify({"error": "No items in order"}), 400
+    if not paypal_order_id:
+        return jsonify({"error": "PayPal payment required"}), 400
 
-    # Validate items
     valid_products = {
-        "report": {"name": "Threat Intel Report", "price": 49},
-        "yara": {"name": "YARA Rule Pack", "price": 199},
-        "ioc": {"name": "IOC Feed Subscription", "price": 99},
-        "scan": {"name": "Malware Analysis Scan", "price": 149},
-        "chatbot": {"name": "AI Threat Chatbot", "price": 79},
-        "agentic": {"name": "Agentic Workflow Pipeline", "price": 499},
+        "report": {"name": "Threat Intel Report", "price": 49, "type": "download"},
+        "yara": {"name": "YARA Rule Pack", "price": 199, "type": "download"},
+        "ioc": {"name": "IOC Feed Subscription", "price": 99, "type": "service"},
+        "scan": {"name": "Malware Analysis Scan", "price": 149, "type": "service"},
+        "chatbot": {"name": "AI Threat Chatbot", "price": 79, "type": "service"},
+        "agentic": {"name": "Agentic Workflow Pipeline", "price": 499, "type": "service"},
     }
 
     validated_items = []
     calc_total = 0
+    has_service = False
+    downloads = []
     for item in items:
         pid = item.get("id", "")
         if pid not in valid_products:
             return jsonify({"error": f"Invalid product: {pid}"}), 400
-        validated_items.append({
-            "id": pid,
-            "name": valid_products[pid]["name"],
-            "price": valid_products[pid]["price"]
-        })
-        calc_total += valid_products[pid]["price"]
+        p = valid_products[pid]
+        validated_items.append({"id": pid, "name": p["name"], "price": p["price"], "type": p["type"]})
+        calc_total += p["price"]
+        if p["type"] == "service":
+            has_service = True
+        if p["type"] == "download":
+            downloads.append({"name": p["name"], "url": f"/api/download/{pid}", "description": f"Digital delivery - {p['name']}"})
 
     order_id = f"ORD-{secrets.token_hex(4).upper()}"
+    user_id = request.user.get('user_id')
+    api_key = None
+    access_level = None
 
     try:
         import db
-        db.create_order(order_id, name, email, org, validated_items, calc_total)
+        db.create_order(order_id, request.user.get('username', ''), billing_email or paypal_payer,
+                        '', validated_items, calc_total, paypal_order_id, paypal_status, user_id)
+
+        # Provision services and downloads
+        for item in validated_items:
+            if item["type"] == "service":
+                db.provision_service(user_id, item["id"], item["name"])
+            elif item["type"] == "download":
+                db.provision_download(user_id, item["id"], item["name"])
+
+        # Generate API key if purchasing a service
+        if has_service:
+            api_key = db.get_or_create_apikey(user_id)
+            access_level = "full" if any(i["id"] == "agentic" for i in validated_items) else "standard"
+
     except Exception as e:
-        # DB not available — still return success for demo
         pass
 
-    return jsonify({"ok": True, "order_id": order_id, "total": calc_total})
+    result = {
+        "ok": True,
+        "order_id": order_id,
+        "paypal_order_id": paypal_order_id,
+        "total": calc_total,
+    }
+    if api_key:
+        result["api_key"] = api_key
+        result["access_level"] = access_level
+    if downloads:
+        result["downloads"] = downloads
+    return jsonify(result)
 
 
 @app.route("/api/orders")

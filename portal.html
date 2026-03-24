@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA - Customer Portal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0a; color:#e0e0e0; font-family:'Inter',sans-serif; min-height:100vh; }
+
+  nav { display:flex; justify-content:space-between; align-items:center; padding:20px 48px; border-bottom:1px solid #1a1a1a; }
+  .nav-brand { display:flex; align-items:center; gap:12px; }
+  .nav-logo { font-size:24px; font-weight:900; letter-spacing:6px; color:#cc0000; text-shadow:0 0 20px rgba(204,0,0,0.3); }
+  .nav-tag { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; }
+  .nav-links { display:flex; gap:24px; align-items:center; }
+  .nav-links a { color:#666; font-size:13px; text-decoration:none; letter-spacing:1px; }
+  .nav-links a:hover { color:#cc0000; }
+  .nav-btn { background:#cc0000; color:white; border:none; padding:8px 20px; font-size:12px; letter-spacing:2px; cursor:pointer; text-decoration:none; font-family:'Inter',sans-serif; font-weight:600; }
+
+  .portal-header { text-align:center; padding:60px 48px 40px; }
+  .portal-header h1 { font-size:36px; font-weight:900; color:#fff; letter-spacing:2px; margin-bottom:8px; }
+  .portal-header h1 span { color:#cc0000; }
+  .portal-header p { color:#555; font-size:14px; }
+
+  /* Login prompt */
+  .login-prompt { text-align:center; padding:80px 48px; }
+  .login-prompt p { color:#555; font-size:14px; margin-bottom:24px; }
+  .login-prompt a { color:#cc0000; font-size:14px; letter-spacing:1px; }
+
+  /* Dashboard grid */
+  .dash { max-width:1100px; margin:0 auto; padding:0 48px; }
+
+  .profile-card { background:#111; border:1px solid #1a1a1a; padding:32px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; }
+  .profile-info h3 { font-size:16px; color:#fff; margin-bottom:4px; }
+  .profile-info p { font-size:12px; color:#555; }
+  .profile-badge { background:#1a1a1a; border:1px solid #333; padding:6px 16px; font-size:10px; letter-spacing:2px; color:#cc0000; text-transform:uppercase; }
+
+  .section-label { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:#cc0000; margin:32px 0 16px; }
+
+  /* API Key box */
+  .api-box { background:#111; border:1px solid #1a1a1a; padding:24px; margin-bottom:24px; }
+  .api-box h4 { font-size:12px; color:#888; letter-spacing:1px; margin-bottom:12px; }
+  .api-key-row { display:flex; align-items:center; gap:12px; }
+  .api-key-display { flex:1; background:#0a0a0a; border:1px solid #222; padding:12px 16px; font-family:monospace; font-size:13px; color:#cc0000; letter-spacing:1px; overflow:hidden; text-overflow:ellipsis; }
+  .copy-btn { background:#1a1a1a; border:1px solid #333; color:#888; padding:12px 20px; font-size:11px; letter-spacing:1px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .copy-btn:hover { border-color:#cc0000; color:#cc0000; }
+  .regen-btn { background:transparent; border:1px solid #333; color:#555; padding:12px 20px; font-size:11px; letter-spacing:1px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .regen-btn:hover { border-color:#cc0000; color:#cc0000; }
+
+  /* Orders table */
+  .orders-table { width:100%; border-collapse:collapse; }
+  .orders-table th { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#555; text-align:left; padding:12px 16px; border-bottom:1px solid #1a1a1a; }
+  .orders-table td { padding:12px 16px; font-size:13px; border-bottom:1px solid #111; }
+  .orders-table tr:hover td { background:#111; }
+  .status-badge { padding:4px 10px; font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+  .status-confirmed { background:#1a3a1a; color:#00cc44; }
+  .status-pending { background:#3a3a1a; color:#cccc00; }
+
+  /* Downloads */
+  .download-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .download-card { background:#111; border:1px solid #1a1a1a; padding:24px; }
+  .download-card h4 { font-size:13px; color:#fff; margin-bottom:8px; }
+  .download-card p { font-size:11px; color:#555; margin-bottom:16px; }
+  .dl-btn { background:transparent; border:1px solid #cc0000; color:#cc0000; padding:8px 20px; font-size:11px; letter-spacing:1px; cursor:pointer; font-family:'Inter',sans-serif; text-decoration:none; display:inline-block; }
+  .dl-btn:hover { background:#cc0000; color:#fff; }
+
+  /* Services */
+  .service-card { background:#111; border:1px solid #1a1a1a; padding:24px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+  .service-card h4 { font-size:13px; color:#fff; margin-bottom:4px; }
+  .service-card p { font-size:11px; color:#555; }
+  .service-active { color:#00cc44; font-size:11px; letter-spacing:1px; }
+  .service-inactive { color:#555; font-size:11px; letter-spacing:1px; }
+
+  .empty-state { text-align:center; padding:40px; color:#333; font-size:13px; }
+
+  footer { padding:24px 48px; border-top:1px solid #1a1a1a; display:flex; justify-content:space-between; align-items:center; margin-top:60px; }
+  footer p { font-size:11px; color:#333; letter-spacing:1px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div>
+      <div class="nav-logo">ARIA</div>
+      <div class="nav-tag">Automated Response & Intelligence Agent</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/store">Store</a>
+    <a href="/portal">My Account</a>
+    <a class="nav-btn" href="#" id="navAction" onclick="doLogout()">SIGN OUT</a>
+  </div>
+</nav>
+
+<div class="portal-header">
+  <h1>Customer <span>Portal</span></h1>
+  <p>Manage your purchases, API keys, and downloads</p>
+</div>
+
+<!-- Not logged in -->
+<div id="loginPrompt" class="login-prompt" style="display:none;">
+  <p>You need to sign in to access your account portal.</p>
+  <a href="/">Sign In</a> &nbsp;|&nbsp; <a href="/store" onclick="setTimeout(function(){openRegister()},500)">Create Account</a>
+</div>
+
+<!-- Logged in dashboard -->
+<div id="dashboard" class="dash" style="display:none;">
+
+  <div class="profile-card">
+    <div class="profile-info">
+      <h3 id="profileName">---</h3>
+      <p id="profileEmail">---</p>
+    </div>
+    <span class="profile-badge" id="profileRole">---</span>
+  </div>
+
+  <!-- API Key -->
+  <div class="section-label">API Access</div>
+  <div class="api-box">
+    <h4>Your API Key</h4>
+    <div class="api-key-row">
+      <div class="api-key-display" id="apiKeyDisplay">Loading...</div>
+      <button class="copy-btn" onclick="copyApiKey()">COPY</button>
+      <button class="regen-btn" onclick="regenApiKey()">REGENERATE</button>
+    </div>
+  </div>
+
+  <!-- Active Services -->
+  <div class="section-label">Active Services</div>
+  <div id="servicesList">
+    <div class="empty-state">No active services</div>
+  </div>
+
+  <!-- Downloads -->
+  <div class="section-label">Downloads</div>
+  <div class="download-grid" id="downloadsList">
+    <div class="empty-state" style="grid-column:1/-1;">No downloads available</div>
+  </div>
+
+  <!-- Order History -->
+  <div class="section-label">Order History</div>
+  <div style="background:#111;border:1px solid #1a1a1a;overflow-x:auto;">
+    <table class="orders-table">
+      <thead>
+        <tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>PayPal</th></tr>
+      </thead>
+      <tbody id="ordersBody">
+        <tr><td colspan="6" class="empty-state">No orders yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p>
+</footer>
+
+<script>
+var currentUser = null;
+
+function init(){
+  fetch('/api/me').then(function(r){return r.json();}).then(function(d){
+    if(d.authenticated){
+      currentUser = d;
+      document.getElementById('loginPrompt').style.display='none';
+      document.getElementById('dashboard').style.display='block';
+      document.getElementById('profileName').textContent = d.full_name || d.username;
+      document.getElementById('profileEmail').textContent = d.email || '';
+      document.getElementById('profileRole').textContent = d.role;
+      loadPortalData();
+    } else {
+      document.getElementById('loginPrompt').style.display='block';
+      document.getElementById('dashboard').style.display='none';
+    }
+  }).catch(function(){
+    document.getElementById('loginPrompt').style.display='block';
+  });
+}
+
+function loadPortalData(){
+  // Load API key
+  fetch('/api/my/apikey').then(function(r){return r.json();}).then(function(d){
+    document.getElementById('apiKeyDisplay').textContent = d.api_key || 'No API key generated';
+  }).catch(function(){
+    document.getElementById('apiKeyDisplay').textContent = 'Error loading';
+  });
+
+  // Load orders
+  fetch('/api/my/orders').then(function(r){return r.json();}).then(function(d){
+    if(d.orders && d.orders.length>0){
+      var html='';
+      for(var i=0;i<d.orders.length;i++){
+        var o=d.orders[i];
+        html+='<tr>'
+          +'<td style="color:#cc0000;font-weight:600;">'+o.order_id+'</td>'
+          +'<td style="color:#555;">'+new Date(o.created_at).toLocaleDateString()+'</td>'
+          +'<td>'+o.item_count+' item(s)</td>'
+          +'<td style="color:#fff;">$'+parseFloat(o.total).toFixed(2)+'</td>'
+          +'<td><span class="status-badge status-'+o.status+'">'+o.status+'</span></td>'
+          +'<td style="color:#555;font-size:11px;">'+(o.paypal_order_id||'N/A')+'</td>'
+          +'</tr>';
+      }
+      document.getElementById('ordersBody').innerHTML=html;
+    }
+  }).catch(function(){});
+
+  // Load services
+  fetch('/api/my/services').then(function(r){return r.json();}).then(function(d){
+    if(d.services && d.services.length>0){
+      var html='';
+      for(var i=0;i<d.services.length;i++){
+        var s=d.services[i];
+        html+='<div class="service-card"><div><h4>'+s.name+'</h4><p>Purchased: '+new Date(s.activated_at).toLocaleDateString()+'</p></div>'
+          +'<span class="service-active">ACTIVE</span></div>';
+      }
+      document.getElementById('servicesList').innerHTML=html;
+    }
+  }).catch(function(){});
+
+  // Load downloads
+  fetch('/api/my/downloads').then(function(r){return r.json();}).then(function(d){
+    if(d.downloads && d.downloads.length>0){
+      var html='';
+      for(var i=0;i<d.downloads.length;i++){
+        var dl=d.downloads[i];
+        html+='<div class="download-card"><h4>'+dl.name+'</h4><p>'+dl.description+'</p>'
+          +'<a class="dl-btn" href="'+dl.url+'">DOWNLOAD</a></div>';
+      }
+      document.getElementById('downloadsList').innerHTML=html;
+    }
+  }).catch(function(){});
+}
+
+function copyApiKey(){
+  var key = document.getElementById('apiKeyDisplay').textContent;
+  navigator.clipboard.writeText(key).then(function(){
+    var btn = document.querySelector('.copy-btn');
+    btn.textContent='COPIED!';
+    setTimeout(function(){btn.textContent='COPY';},2000);
+  });
+}
+
+function regenApiKey(){
+  if(!confirm('Regenerate API key? The old key will stop working.')) return;
+  fetch('/api/my/apikey/regenerate',{method:'POST'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.api_key) document.getElementById('apiKeyDisplay').textContent=d.api_key;
+  });
+}
+
+function doLogout(){
+  fetch('/api/logout',{method:'POST'}).then(function(){
+    window.location.href='/';
+  });
+}
+
+init();
+</script>
+</body>
+</html>

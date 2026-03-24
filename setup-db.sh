@@ -59,9 +59,61 @@ CREATE TABLE IF NOT EXISTS reports (
     data BYTEA,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE REFERENCES users(id),
+    full_name VARCHAR(128),
+    email VARCHAR(128) UNIQUE,
+    organization VARCHAR(128),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE REFERENCES users(id),
+    api_key VARCHAR(64) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    order_id VARCHAR(20) UNIQUE NOT NULL,
+    user_id INTEGER REFERENCES users(id),
+    customer_name VARCHAR(128) NOT NULL,
+    customer_email VARCHAR(128) NOT NULL,
+    organization VARCHAR(128),
+    total DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'confirmed',
+    paypal_order_id VARCHAR(64),
+    paypal_status VARCHAR(32),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS order_items (
+    id SERIAL PRIMARY KEY,
+    order_id VARCHAR(20) REFERENCES orders(order_id),
+    product_id VARCHAR(32) NOT NULL,
+    product_name VARCHAR(128) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    product_type VARCHAR(20)
+);
+CREATE TABLE IF NOT EXISTS user_services (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    product_id VARCHAR(32) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
+    activated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS user_downloads (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    product_id VARCHAR(32) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 CREATE INDEX IF NOT EXISTS idx_scans_sha256 ON scans(sha256);
 CREATE INDEX IF NOT EXISTS idx_scans_submitted_at ON scans(submitted_at);
 CREATE INDEX IF NOT EXISTS idx_iocs_value ON iocs(value);
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO aria;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO aria;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO aria;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO aria;
 SQL

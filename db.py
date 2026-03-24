@@ -83,9 +83,33 @@ def create_user(username, password, role='analyst'):
     except psycopg2.errors.UniqueViolation:
         return None
 
+def register_user(username, password, full_name, email, organization=''):
+    """Register a new user with full profile. Returns user dict or None."""
+    ensure_extended_tables()
+    ph = hash_password(password)
+    try:
+        query("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
+              (username, ph, 'customer'), fetch=False)
+        user = get_user(username)
+        if user:
+            query("""INSERT INTO user_profiles (user_id, full_name, email, organization)
+                     VALUES (%s, %s, %s, %s)""",
+                  (user['id'], full_name, email, organization), fetch=False)
+            # Generate API key on registration
+            get_or_create_apikey(user['id'])
+        return user
+    except psycopg2.errors.UniqueViolation:
+        get_conn()  # Reset connection after error
+        return None
+
 def get_user(username):
     """Get user by username."""
     return query_one("SELECT id, username, role, created_at FROM users WHERE username = %s", (username,))
+
+def get_user_profile(user_id):
+    """Get extended user profile."""
+    ensure_extended_tables()
+    return query_one("SELECT * FROM user_profiles WHERE user_id = %s", (user_id,))
 
 def authenticate(username, password):
     """Authenticate user. Returns user dict or None."""
@@ -96,6 +120,7 @@ def authenticate(username, password):
 
 def ensure_default_users():
     """Create default accounts if they don't exist."""
+    ensure_extended_tables()
     defaults = [
         ('admin', 'AriaAdmin2026!', 'admin'),
         ('analyst', 'AriaAnalyst2026!', 'analyst'),
@@ -104,6 +129,134 @@ def ensure_default_users():
         existing = query_one("SELECT id FROM users WHERE username = %s", (user,))
         if not existing:
             create_user(user, pw, role)
+
+
+# ══════════════════════════════════════
+#  EXTENDED TABLES — profiles, API keys, services, downloads
+# ══════════════════════════════════════
+
+_tables_ensured = False
+
+def ensure_extended_tables():
+    """Create extended tables if they don't exist. Runs once."""
+    global _tables_ensured
+    if _tables_ensured:
+        return
+    query("""
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER UNIQUE REFERENCES users(id),
+            full_name VARCHAR(128),
+            email VARCHAR(128) UNIQUE,
+            organization VARCHAR(128),
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """, fetch=False)
+    query("""
+        CREATE TABLE IF NOT EXISTS api_keys (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER UNIQUE REFERENCES users(id),
+            api_key VARCHAR(64) UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """, fetch=False)
+    query("""
+        CREATE TABLE IF NOT EXISTS user_services (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            product_id VARCHAR(32) NOT NULL,
+            name VARCHAR(128) NOT NULL,
+            status VARCHAR(20) DEFAULT 'active',
+            activated_at TIMESTAMP DEFAULT NOW()
+        )
+    """, fetch=False)
+    query("""
+        CREATE TABLE IF NOT EXISTS user_downloads (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            product_id VARCHAR(32) NOT NULL,
+            name VARCHAR(128) NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """, fetch=False)
+    _tables_ensured = True
+
+
+# ══════════════════════════════════════
+#  API KEYS
+# ══════════════════════════════════════
+
+def get_or_create_apikey(user_id):
+    """Get existing API key or create new one."""
+    ensure_extended_tables()
+    row = query_one("SELECT api_key FROM api_keys WHERE user_id = %s", (user_id,))
+    if row:
+        return row['api_key']
+    key = f"aria_{secrets.token_hex(24)}"
+    query("INSERT INTO api_keys (user_id, api_key) VALUES (%s, %s)", (user_id, key), fetch=False)
+    return key
+
+def regenerate_apikey(user_id):
+    """Generate new API key, invalidating old one."""
+    ensure_extended_tables()
+    key = f"aria_{secrets.token_hex(24)}"
+    existing = query_one("SELECT id FROM api_keys WHERE user_id = %s", (user_id,))
+    if existing:
+        query("UPDATE api_keys SET api_key = %s, created_at = NOW() WHERE user_id = %s", (key, user_id), fetch=False)
+    else:
+        query("INSERT INTO api_keys (user_id, api_key) VALUES (%s, %s)", (user_id, key), fetch=False)
+    return key
+
+
+# ══════════════════════════════════════
+#  SERVICE & DOWNLOAD PROVISIONING
+# ══════════════════════════════════════
+
+def provision_service(user_id, product_id, name):
+    """Activate a service for a user."""
+    ensure_extended_tables()
+    existing = query_one(
+        "SELECT id FROM user_services WHERE user_id = %s AND product_id = %s AND status = 'active'",
+        (user_id, product_id))
+    if not existing:
+        query("INSERT INTO user_services (user_id, product_id, name) VALUES (%s, %s, %s)",
+              (user_id, product_id, name), fetch=False)
+
+def provision_download(user_id, product_id, name):
+    """Grant download access to a user."""
+    ensure_extended_tables()
+    query("INSERT INTO user_downloads (user_id, product_id, name) VALUES (%s, %s, %s)",
+          (user_id, product_id, name), fetch=False)
+
+def get_user_services(user_id):
+    """Get active services for a user."""
+    ensure_extended_tables()
+    return query("SELECT * FROM user_services WHERE user_id = %s AND status = 'active' ORDER BY activated_at DESC", (user_id,))
+
+def get_user_downloads(user_id):
+    """Get available downloads for a user."""
+    ensure_extended_tables()
+    rows = query("SELECT product_id, name, created_at FROM user_downloads WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+    downloads = []
+    for r in rows:
+        downloads.append({
+            "name": r['name'],
+            "description": f"Digital delivery - {r['name']}",
+            "url": f"/api/download/{r['product_id']}"
+        })
+    return downloads
+
+def user_has_download(user_id, product_id):
+    """Check if user has purchased a downloadable product."""
+    ensure_extended_tables()
+    row = query_one("SELECT id FROM user_downloads WHERE user_id = %s AND product_id = %s", (user_id, product_id))
+    return row is not None
+
+def get_user_orders(user_id):
+    """Get orders for a specific user."""
+    ensure_orders_table()
+    return query("""SELECT o.*, (SELECT COUNT(*) FROM order_items WHERE order_id = o.order_id) as item_count
+                    FROM orders o WHERE o.user_id = %s ORDER BY o.created_at DESC""", (user_id,))
 
 
 # ══════════════════════════════════════
@@ -256,11 +409,14 @@ def ensure_orders_table():
         CREATE TABLE IF NOT EXISTS orders (
             id SERIAL PRIMARY KEY,
             order_id VARCHAR(20) UNIQUE NOT NULL,
+            user_id INTEGER REFERENCES users(id),
             customer_name VARCHAR(128) NOT NULL,
             customer_email VARCHAR(128) NOT NULL,
             organization VARCHAR(128),
             total DECIMAL(10,2) NOT NULL,
             status VARCHAR(20) DEFAULT 'confirmed',
+            paypal_order_id VARCHAR(64),
+            paypal_status VARCHAR(32),
             created_at TIMESTAMP DEFAULT NOW()
         )
     """, fetch=False)
@@ -270,21 +426,23 @@ def ensure_orders_table():
             order_id VARCHAR(20) REFERENCES orders(order_id),
             product_id VARCHAR(32) NOT NULL,
             product_name VARCHAR(128) NOT NULL,
-            price DECIMAL(10,2) NOT NULL
+            price DECIMAL(10,2) NOT NULL,
+            product_type VARCHAR(20)
         )
     """, fetch=False)
 
-def create_order(order_id, name, email, org, items, total):
+def create_order(order_id, name, email, org, items, total, paypal_order_id=None, paypal_status=None, user_id=None):
     """Insert a new order and its line items."""
     ensure_orders_table()
     query(
-        "INSERT INTO orders (order_id, customer_name, customer_email, organization, total) VALUES (%s,%s,%s,%s,%s)",
-        (order_id, name, email, org, total), fetch=False
+        """INSERT INTO orders (order_id, user_id, customer_name, customer_email, organization, total, paypal_order_id, paypal_status)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (order_id, user_id, name, email, org, total, paypal_order_id, paypal_status), fetch=False
     )
     for item in items:
         query(
-            "INSERT INTO order_items (order_id, product_id, product_name, price) VALUES (%s,%s,%s,%s)",
-            (order_id, item['id'], item['name'], item['price']), fetch=False
+            "INSERT INTO order_items (order_id, product_id, product_name, price, product_type) VALUES (%s,%s,%s,%s,%s)",
+            (order_id, item['id'], item['name'], item['price'], item.get('type', '')), fetch=False
         )
 
 def get_orders(limit=100):
