@@ -30,11 +30,12 @@ def security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data:; "
-        "connect-src 'self'"
+        "img-src 'self' data: https://www.paypalobjects.com https://t.paypal.com; "
+        "frame-src https://www.sandbox.paypal.com https://www.paypal.com; "
+        "connect-src 'self' https://www.sandbox.paypal.com https://www.paypal.com"
     )
     return response
 
