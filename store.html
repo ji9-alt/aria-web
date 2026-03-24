@@ -138,12 +138,12 @@
       <div class="nav-tag">Automated Response & Intelligence Agent</div>
     </div>
   </div>
-  <div class="nav-links">
+  <div class="nav-links" id="navLinks">
     <a href="/">Home</a>
     <a href="/store">Store</a>
     <a href="/portal">My Account</a>
-    <a href="#" onclick="openRegister()">Register</a>
-    <a class="nav-btn" href="/" >SIGN IN</a>
+    <a href="#" onclick="openRegister()" id="navRegister">Register</a>
+    <a class="nav-btn" href="/" id="navAuth">SIGN IN</a>
   </div>
 </nav>
 
@@ -317,8 +317,18 @@
   <p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p>
 </footer>
 
-<!-- PayPal Sandbox SDK -->
-<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD&intent=capture"></script>
+<!-- PayPal Sandbox SDK — loaded dynamically with fallback -->
+<script>
+var paypalReady = false;
+function loadPayPalSDK() {
+  var s = document.createElement('script');
+  s.src = 'https://www.paypal.com/sdk/js?client-id=sb&currency=USD&intent=capture';
+  s.onload = function() { paypalReady = true; };
+  s.onerror = function() { paypalReady = false; };
+  document.head.appendChild(s);
+}
+loadPayPalSDK();
+</script>
 
 <script>
 // ═══════════════ CART ═══════════════
@@ -482,7 +492,11 @@ function renderPayPalButton(){
   var total = getTotal().toFixed(2);
 
   if(typeof paypal === 'undefined'){
-    container.innerHTML='<p style="color:#cc0000;font-size:12px;text-align:center;">PayPal SDK failed to load. Check internet connection.</p>';
+    container.innerHTML='<p style="color:#cc0000;font-size:12px;text-align:center;">PayPal is loading... If this persists, your browser needs internet access to reach paypal.com</p>'
+      +'<button class="submit-btn" onclick="loadPayPalSDK();setTimeout(renderPayPalButton,3000);" style="background:#333;margin-top:8px;">RETRY PAYPAL</button>'
+      +'<hr style="border:none;border-top:1px solid #222;margin:16px 0;">'
+      +'<p style="font-size:11px;color:#555;text-align:center;">Or use demo checkout (no real payment)</p>'
+      +'<button class="submit-btn" onclick="demoCheckout();" style="margin-top:8px;">DEMO CHECKOUT</button>';
     return;
   }
 
@@ -530,6 +544,24 @@ function renderPayPalButton(){
       document.getElementById('coError').style.display='block';
     }
   }).render('#paypal-button-container');
+}
+
+function demoCheckout(){
+  var orderData = {
+    paypal_order_id: 'DEMO-'+Math.random().toString(36).substr(2,8).toUpperCase(),
+    paypal_payer: document.getElementById('coBillingEmail').value.trim()||'demo@aria.local',
+    paypal_status: 'COMPLETED',
+    items: cart,
+    total: getTotal(),
+    billing_email: document.getElementById('coBillingEmail').value.trim()||'demo@aria.local'
+  };
+  fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderData)})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){ showOrderSuccess(d); }
+    else { alert('Order failed: '+(d.error||'Unknown error')); }
+  })
+  .catch(function(){ alert('Connection error'); });
 }
 
 function showOrderSuccess(d){
@@ -594,6 +626,23 @@ function sendChat(){
   .then(function(d){ var t=document.getElementById('typing'); if(t)t.remove(); addChatMsg(d.response||'Error processing request.','bot'); })
   .catch(function(){ var t=document.getElementById('typing'); if(t)t.remove(); addChatMsg('Connection error.','bot'); });
 }
+
+// ═══════════════ AUTH-AWARE NAV ═══════════════
+(function(){
+  fetch('/api/me').then(function(r){return r.json();}).then(function(d){
+    if(d.authenticated){
+      var authBtn = document.getElementById('navAuth');
+      authBtn.textContent = 'SIGN OUT';
+      authBtn.href = '#';
+      authBtn.onclick = function(e){
+        e.preventDefault();
+        fetch('/api/logout',{method:'POST'}).then(function(){ window.location.reload(); });
+      };
+      var regLink = document.getElementById('navRegister');
+      if(regLink) regLink.style.display='none';
+    }
+  }).catch(function(){});
+})();
 </script>
 <style>@keyframes dp{0%,80%,100%{opacity:0.3;}40%{opacity:1;}}</style>
 </body>

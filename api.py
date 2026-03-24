@@ -2296,15 +2296,15 @@ def generate_yara_endpoint():
 
 @app.route('/test')
 def serve_test():
-    """Analysis platform — admin/analyst get full access, customers need scan credit."""
+    """Analysis platform — requires auth. Admin/analyst get full access, customers need scan credit."""
     token = request.cookies.get('aria_session')
     if not token:
-        return '<script>window.location.href="/";</script>'
+        return '<script>alert("Please sign in to access the analysis platform.");window.location.href="/";</script>'
     try:
         import db
         session = db.get_session(token)
         if not session:
-            return '<script>window.location.href="/";</script>'
+            return '<script>alert("Session expired. Please sign in again.");window.location.href="/";</script>'
         if session['role'] in ('admin', 'analyst'):
             return send_from_directory(BASE_DIR, 'openclaw_test.html')
         # Customer — check if they purchased a scan
@@ -2313,9 +2313,10 @@ def serve_test():
             (session['user_id'],))
         if has_scan:
             return send_from_directory(BASE_DIR, 'openclaw_test.html')
-        return '<script>alert("You need to purchase a Malware Analysis Scan credit first.");window.location.href="/store";</script>'
+        return '<script>alert("You need to purchase a Malware Analysis Scan credit to access this service.");window.location.href="/store";</script>'
     except Exception:
-        return send_from_directory(BASE_DIR, 'openclaw_test.html')
+        # DB down — only allow if we can't verify (fail open for admin)
+        return '<script>alert("Please sign in to access the analysis platform.");window.location.href="/";</script>'
 
 @app.route("/")
 def serve_landing():

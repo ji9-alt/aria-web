@@ -162,7 +162,7 @@
     <a href="#features">Features</a>
     <a href="/store">Store</a>
     <a href="#stats">Threat Intel</a>
-    <a class="nav-btn" href="#" onclick="openLogin()">SIGN IN</a>
+    <a class="nav-btn" href="#" onclick="openLogin()" id="navAuth">SIGN IN</a>
   </div>
 </nav>
 
@@ -293,15 +293,27 @@ function doLogin() {
 fetch('/api/me').then(function(r) {
   if (r.ok) {
     return r.json().then(function(d) {
-      var btn = document.querySelector('.nav-btn');
+      if (!d.authenticated) return;
+      var btn = document.getElementById('navAuth');
       var role = d.role;
       if (role === 'admin' || role === 'analyst') {
         btn.textContent = 'GO TO PLATFORM';
-        btn.onclick = function() { window.location.href = '/test'; };
+        btn.onclick = function(e) { e.preventDefault(); window.location.href = '/test'; };
       } else {
         btn.textContent = 'MY ACCOUNT';
-        btn.onclick = function() { window.location.href = '/portal'; };
+        btn.onclick = function(e) { e.preventDefault(); window.location.href = '/portal'; };
       }
+      // Add sign out link
+      var nav = document.querySelector('.nav-links');
+      var signout = document.createElement('a');
+      signout.href = '#';
+      signout.textContent = 'Sign Out';
+      signout.style.color = '#555';
+      signout.onclick = function(e) {
+        e.preventDefault();
+        fetch('/api/logout', {method:'POST'}).then(function() { window.location.reload(); });
+      };
+      nav.insertBefore(signout, btn);
     });
   }
 }).catch(function() {});
