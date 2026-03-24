@@ -268,7 +268,12 @@ function doLogin() {
   .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
   .then(function(res) {
     if (res.status === 200 && res.data.ok) {
-      window.location.href = '/test';
+      var role = res.data.role;
+      if (role === 'admin' || role === 'analyst') {
+        window.location.href = '/test';
+      } else {
+        window.location.href = '/portal';
+      }
     } else if (res.status === 429) {
       err.textContent = 'Too many attempts. Wait 60 seconds.';
       err.style.display = 'block';
@@ -287,9 +292,17 @@ function doLogin() {
 // Check if already logged in via server
 fetch('/api/me').then(function(r) {
   if (r.ok) {
-    var btn = document.querySelector('.nav-btn');
-    btn.textContent = 'GO TO PLATFORM';
-    btn.onclick = function() { window.location.href = '/test'; };
+    return r.json().then(function(d) {
+      var btn = document.querySelector('.nav-btn');
+      var role = d.role;
+      if (role === 'admin' || role === 'analyst') {
+        btn.textContent = 'GO TO PLATFORM';
+        btn.onclick = function() { window.location.href = '/test'; };
+      } else {
+        btn.textContent = 'MY ACCOUNT';
+        btn.onclick = function() { window.location.href = '/portal'; };
+      }
+    });
   }
 }).catch(function() {});
 

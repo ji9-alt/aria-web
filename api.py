@@ -2296,7 +2296,26 @@ def generate_yara_endpoint():
 
 @app.route('/test')
 def serve_test():
-    return send_from_directory(BASE_DIR, 'openclaw_test.html')
+    """Analysis platform — admin/analyst get full access, customers need scan credit."""
+    token = request.cookies.get('aria_session')
+    if not token:
+        return '<script>window.location.href="/";</script>'
+    try:
+        import db
+        session = db.get_session(token)
+        if not session:
+            return '<script>window.location.href="/";</script>'
+        if session['role'] in ('admin', 'analyst'):
+            return send_from_directory(BASE_DIR, 'openclaw_test.html')
+        # Customer — check if they purchased a scan
+        has_scan = db.query_one(
+            "SELECT id FROM user_services WHERE user_id = %s AND product_id = 'scan' AND status = 'active'",
+            (session['user_id'],))
+        if has_scan:
+            return send_from_directory(BASE_DIR, 'openclaw_test.html')
+        return '<script>alert("You need to purchase a Malware Analysis Scan credit first.");window.location.href="/store";</script>'
+    except Exception:
+        return send_from_directory(BASE_DIR, 'openclaw_test.html')
 
 @app.route("/")
 def serve_landing():
