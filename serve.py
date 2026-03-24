@@ -1,6 +1,7 @@
 """
 ARIA Production Server — Waitress WSGI
-Run this instead of 'python api.py' for production.
+When run by IIS HttpPlatformHandler, uses the port IIS assigns.
+When run standalone, defaults to port 5000.
 """
 from waitress import serve
 from api import app
@@ -13,14 +14,14 @@ if __name__ == "__main__":
         import db
         db.ensure_default_users()
         print("[ARIA] Database connected, default users ready")
-        print("[ARIA] Login: admin / AriaAdmin2026!  or  analyst / AriaAnalyst2026!")
     except Exception as e:
         print(f"[ARIA] Database not available ({e}) — running with fallback auth")
 
-    host = "0.0.0.0"
-    port = int(os.environ.get("ARIA_PORT", "5000"))
+    # IIS sets HTTP_PLATFORM_PORT, standalone uses ARIA_PORT or 5000
+    port = int(os.environ.get("HTTP_PLATFORM_PORT",
+               os.environ.get("ARIA_PORT", "5000")))
     threads = int(os.environ.get("ARIA_THREADS", "8"))
 
-    print(f"[ARIA] Production server starting on {host}:{port} ({threads} threads)")
-    print(f"[ARIA] IIS should reverse proxy to http://127.0.0.1:{port}")
-    serve(app, host=host, port=port, threads=threads)
+    print(f"[ARIA] Starting on port {port} ({threads} threads)")
+    sys.stdout.flush()
+    serve(app, host="127.0.0.1", port=port, threads=threads)
