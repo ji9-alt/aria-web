@@ -403,13 +403,18 @@ def get_ioc_count():
 #  E-COMMERCE — Orders
 # ══════════════════════════════════════
 
+_orders_ensured = False
+
 def ensure_orders_table():
-    """Create orders and order_items tables if they don't exist."""
+    """Create orders and order_items tables, add missing columns to existing tables."""
+    global _orders_ensured
+    if _orders_ensured:
+        return
     query("""
         CREATE TABLE IF NOT EXISTS orders (
             id SERIAL PRIMARY KEY,
             order_id VARCHAR(20) UNIQUE NOT NULL,
-            user_id INTEGER REFERENCES users(id),
+            user_id INTEGER,
             customer_name VARCHAR(128) NOT NULL,
             customer_email VARCHAR(128) NOT NULL,
             organization VARCHAR(128),
@@ -420,6 +425,12 @@ def ensure_orders_table():
             created_at TIMESTAMP DEFAULT NOW()
         )
     """, fetch=False)
+    # Add columns that may be missing on older tables
+    for col, typ in [("user_id", "INTEGER"), ("paypal_order_id", "VARCHAR(64)"), ("paypal_status", "VARCHAR(32)")]:
+        try:
+            query(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col} {typ}", fetch=False)
+        except Exception:
+            pass
     query("""
         CREATE TABLE IF NOT EXISTS order_items (
             id SERIAL PRIMARY KEY,
@@ -430,6 +441,11 @@ def ensure_orders_table():
             product_type VARCHAR(20)
         )
     """, fetch=False)
+    try:
+        query("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_type VARCHAR(20)", fetch=False)
+    except Exception:
+        pass
+    _orders_ensured = True
 
 def create_order(order_id, name, email, org, items, total, paypal_order_id=None, paypal_status=None, user_id=None):
     """Insert a new order and its line items."""

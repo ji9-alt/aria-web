@@ -270,12 +270,16 @@ def api_my_orders():
     """Get current user's order history."""
     try:
         import db
-        orders = db.get_user_orders(request.user['user_id'])
+        uid = request.user['user_id']
+        print(f"[PORTAL] Loading orders for user_id={uid}")
+        orders = db.get_user_orders(uid)
+        print(f"[PORTAL] Found {len(orders)} orders")
         for o in orders:
             if 'created_at' in o and o['created_at']:
                 o['created_at'] = o['created_at'].isoformat()
         return jsonify({"orders": orders})
     except Exception as e:
+        print(f"[PORTAL] Orders error: {e}")
         return jsonify({"orders": [], "error": str(e)})
 
 @app.route("/api/my/services")
@@ -284,12 +288,16 @@ def api_my_services():
     """Get current user's active services."""
     try:
         import db
-        services = db.get_user_services(request.user['user_id'])
+        uid = request.user['user_id']
+        print(f"[PORTAL] Loading services for user_id={uid}")
+        services = db.get_user_services(uid)
+        print(f"[PORTAL] Found {len(services)} services")
         for s in services:
             if 'activated_at' in s and s['activated_at']:
                 s['activated_at'] = s['activated_at'].isoformat()
         return jsonify({"services": services})
     except Exception as e:
+        print(f"[PORTAL] Services error: {e}")
         return jsonify({"services": [], "error": str(e)})
 
 @app.route("/api/my/downloads")
@@ -298,9 +306,13 @@ def api_my_downloads():
     """Get current user's available downloads."""
     try:
         import db
-        downloads = db.get_user_downloads(request.user['user_id'])
+        uid = request.user['user_id']
+        print(f"[PORTAL] Loading downloads for user_id={uid}")
+        downloads = db.get_user_downloads(uid)
+        print(f"[PORTAL] Found {len(downloads)} downloads")
         return jsonify({"downloads": downloads})
     except Exception as e:
+        print(f"[PORTAL] Downloads error: {e}")
         return jsonify({"downloads": [], "error": str(e)})
 
 
@@ -2412,23 +2424,30 @@ def api_create_order():
 
     try:
         import db
+        print(f"[ORDER] Creating order {order_id} for user_id={user_id}, items={len(validated_items)}, total=${calc_total}")
         db.create_order(order_id, request.user.get('username', ''), billing_email or paypal_payer,
                         '', validated_items, calc_total, paypal_order_id, paypal_status, user_id)
+        print(f"[ORDER] Order {order_id} saved to DB")
 
         # Provision services and downloads
         for item in validated_items:
             if item["type"] == "service":
                 db.provision_service(user_id, item["id"], item["name"])
+                print(f"[ORDER] Provisioned service: {item['name']} for user_id={user_id}")
             elif item["type"] == "download":
                 db.provision_download(user_id, item["id"], item["name"])
+                print(f"[ORDER] Provisioned download: {item['name']} for user_id={user_id}")
 
         # Generate API key if purchasing a service
         if has_service:
             api_key = db.get_or_create_apikey(user_id)
             access_level = "full" if any(i["id"] == "agentic" for i in validated_items) else "standard"
+            print(f"[ORDER] API key generated for user_id={user_id}")
 
     except Exception as e:
-        pass
+        print(f"[ORDER] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
 
     result = {
         "ok": True,
