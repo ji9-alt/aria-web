@@ -208,13 +208,24 @@ function loadPortalData(){
   }).catch(function(){});
 
   // Load services
+  var serviceActions = {
+    'scan': '<a href="/test" style="color:#cc0000;font-size:11px;letter-spacing:1px;text-decoration:none;border:1px solid #cc0000;padding:6px 14px;">OPEN PLATFORM</a>',
+    'report': '<a href="/test" style="color:#cc0000;font-size:11px;letter-spacing:1px;text-decoration:none;border:1px solid #cc0000;padding:6px 14px;">GENERATE REPORT</a>',
+    'chatbot': '<a href="/store#chatbot" style="color:#cc0000;font-size:11px;letter-spacing:1px;text-decoration:none;border:1px solid #cc0000;padding:6px 14px;">OPEN CHATBOT</a>',
+    'ioc': '<span style="font-size:11px;color:#555;">Use API key with /api/iocs endpoint</span>',
+    'agentic': '<a href="/test" style="color:#cc0000;font-size:11px;letter-spacing:1px;text-decoration:none;border:1px solid #cc0000;padding:6px 14px;">OPEN PIPELINE</a>',
+  };
   fetch('/api/my/services').then(function(r){return r.json();}).then(function(d){
     if(d.services && d.services.length>0){
       var html='';
+      var seen = {};
       for(var i=0;i<d.services.length;i++){
         var s=d.services[i];
-        html+='<div class="service-card"><div><h4>'+s.name+'</h4><p>Purchased: '+new Date(s.activated_at).toLocaleDateString()+'</p></div>'
-          +'<span class="service-active">ACTIVE</span></div>';
+        if(seen[s.product_id]) continue;
+        seen[s.product_id] = true;
+        var action = serviceActions[s.product_id] || '<span class="service-active">ACTIVE</span>';
+        html+='<div class="service-card"><div><h4>'+s.name+'</h4><p>Activated: '+new Date(s.activated_at).toLocaleDateString()+'</p></div>'
+          +'<div style="display:flex;align-items:center;gap:12px;"><span class="service-active">ACTIVE</span>'+action+'</div></div>';
       }
       document.getElementById('servicesList').innerHTML=html;
     }

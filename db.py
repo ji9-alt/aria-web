@@ -237,11 +237,15 @@ def get_user_downloads(user_id):
     """Get available downloads for a user."""
     ensure_extended_tables()
     rows = query("SELECT product_id, name, created_at FROM user_downloads WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+    descriptions = {
+        "report": "Upload a file at /test to generate your professional PDF threat report",
+        "yara": "Download your curated YARA detection rule pack (ZIP)",
+    }
     downloads = []
     for r in rows:
         downloads.append({
             "name": r['name'],
-            "description": f"Digital delivery - {r['name']}",
+            "description": descriptions.get(r['product_id'], f"Digital delivery - {r['name']}"),
             "url": f"/api/download/{r['product_id']}"
         })
     return downloads

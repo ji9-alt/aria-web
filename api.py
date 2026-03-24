@@ -2320,13 +2320,13 @@ def serve_test():
             return '<script>alert("Session expired. Please sign in again.");window.location.href="/";</script>'
         if session['role'] in ('admin', 'analyst'):
             return send_from_directory(BASE_DIR, 'openclaw_test.html')
-        # Customer — check if they purchased a scan
-        has_scan = db.query_one(
-            "SELECT id FROM user_services WHERE user_id = %s AND product_id = 'scan' AND status = 'active'",
+        # Customer — check if they have any active service (any purchase grants access)
+        has_purchase = db.query_one(
+            "SELECT id FROM user_services WHERE user_id = %s AND status = 'active'",
             (session['user_id'],))
-        if has_scan:
+        if has_purchase:
             return send_from_directory(BASE_DIR, 'openclaw_test.html')
-        return '<script>alert("You need to purchase a Malware Analysis Scan credit to access this service.");window.location.href="/store";</script>'
+        return '<script>alert("You need to purchase a product or service to access the analysis platform.");window.location.href="/store";</script>'
     except Exception:
         # DB down — only allow if we can't verify (fail open for admin)
         return '<script>alert("Please sign in to access the analysis platform.");window.location.href="/";</script>'
@@ -2350,7 +2350,7 @@ def serve_ui():
 @app.route("/api/download/<product_id>")
 @require_auth
 def api_download(product_id):
-    """Serve digital product downloads."""
+    """Serve digital product downloads or redirect to service."""
     product_id = re.sub(r'[^a-z]', '', product_id)
     try:
         import db
@@ -2359,16 +2359,38 @@ def api_download(product_id):
     except Exception:
         pass
 
-    download_files = {
-        "report": ("ARIA_Sample_Threat_Report.pdf", "application/pdf"),
-        "yara": ("ARIA_YARA_Rules_v2.zip", "application/zip"),
-    }
-    if product_id in download_files:
-        fname, mime = download_files[product_id]
-        fpath = os.path.join(BASE_DIR, "downloads", fname)
-        if os.path.exists(fpath):
-            return send_from_directory(os.path.join(BASE_DIR, "downloads"), fname, mimetype=mime)
-    return jsonify({"info": "Download will be available soon. Check your email for the delivery link."})
+    # Report → redirect to analysis platform where they generate their own PDF
+    if product_id == "report":
+        return '<html><head><meta http-equiv="refresh" content="0;url=/test"></head><body>Redirecting to Analysis Platform to generate your report...</body></html>'
+
+    # YARA → serve the rules pack from capa-rules directory
+    if product_id == "yara":
+        rules_dir = os.path.join(BASE_DIR, "capa-rules")
+        # Try serving a zip if it exists, otherwise serve the rules directory listing
+        zip_path = os.path.join(BASE_DIR, "downloads", "ARIA_YARA_Rules.zip")
+        if os.path.exists(zip_path):
+            return send_from_directory(os.path.join(BASE_DIR, "downloads"), "ARIA_YARA_Rules.zip", mimetype="application/zip")
+        # Generate zip on the fly from yara rules
+        import io, zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+            yara_dir = os.path.join(BASE_DIR, "yara-rules") if os.path.exists(os.path.join(BASE_DIR, "yara-rules")) else rules_dir
+            if os.path.exists(yara_dir):
+                for root, dirs, files in os.walk(yara_dir):
+                    for f in files:
+                        if f.endswith(('.yar', '.yara', '.yml', '.yaml')):
+                            fpath = os.path.join(root, f)
+                            arcname = os.path.relpath(fpath, yara_dir)
+                            zf.write(fpath, arcname)
+            # Add a readme
+            zf.writestr("README.txt", "ARIA YARA Rule Pack\n\nThese rules detect common malware families, packers, and suspicious behaviors.\nImport into your YARA-compatible scanner or SIEM.\n\nARIA Security - 2026\n")
+        buf.seek(0)
+        resp = make_response(buf.read())
+        resp.headers['Content-Type'] = 'application/zip'
+        resp.headers['Content-Disposition'] = 'attachment; filename=ARIA_YARA_Rules.zip'
+        return resp
+
+    return jsonify({"error": "Unknown product"}), 404
 
 
 # ══════════════════════════════════════
@@ -2431,18 +2453,20 @@ def api_create_order():
 
         # Provision services and downloads
         for item in validated_items:
-            if item["type"] == "service":
-                db.provision_service(user_id, item["id"], item["name"])
-                print(f"[ORDER] Provisioned service: {item['name']} for user_id={user_id}")
-            elif item["type"] == "download":
+            db.provision_service(user_id, item["id"], item["name"])
+            print(f"[ORDER] Provisioned service: {item['name']} for user_id={user_id}")
+            if item["type"] == "download":
                 db.provision_download(user_id, item["id"], item["name"])
                 print(f"[ORDER] Provisioned download: {item['name']} for user_id={user_id}")
 
-        # Generate API key if purchasing a service
-        if has_service:
-            api_key = db.get_or_create_apikey(user_id)
-            access_level = "full" if any(i["id"] == "agentic" for i in validated_items) else "standard"
-            print(f"[ORDER] API key generated for user_id={user_id}")
+        # Every purchase grants platform access (scan service)
+        db.provision_service(user_id, "scan", "Malware Analysis Scan")
+        print(f"[ORDER] Granted platform access for user_id={user_id}")
+
+        # Generate API key for every customer
+        api_key = db.get_or_create_apikey(user_id)
+        access_level = "full" if any(i["id"] == "agentic" for i in validated_items) else "standard"
+        print(f"[ORDER] API key generated for user_id={user_id}")
 
     except Exception as e:
         print(f"[ORDER] ERROR: {e}")
