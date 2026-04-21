@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA - Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --red:#cc0000; --bg:#080808; --bg2:#0f0f0f; --bg3:#141414; --border:#1e1e1e; --text:#e0e0e0; --muted:#555; --dim:#333; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:"IBM Plex Sans",sans-serif; min-height:100vh; }
+nav { display:flex; justify-content:space-between; align-items:center; padding:18px 48px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; background:rgba(8,8,8,0.95); backdrop-filter:blur(10px); }
+.nav-logo { font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:700; letter-spacing:8px; color:var(--red); text-shadow:0 0 30px rgba(204,0,0,0.3); text-decoration:none; }
+.nav-links { display:flex; gap:28px; align-items:center; }
+.nav-links a { color:var(--muted); font-size:11px; text-decoration:none; letter-spacing:2px; text-transform:uppercase; font-family:"IBM Plex Mono",monospace; transition:color 0.2s; }
+.nav-links a:hover { color:var(--red); }
+.nav-btn { background:var(--red); color:white; border:none; padding:9px 22px; font-size:11px; letter-spacing:3px; cursor:pointer; text-decoration:none; font-family:"IBM Plex Mono",monospace; font-weight:600; text-transform:uppercase; }
+
+.page-header { text-align:center; padding:48px 48px 32px; }
+.page-header h1 { font-size:36px; font-weight:700; color:#fff; letter-spacing:-1px; margin-bottom:8px; }
+.page-header h1 span { color:var(--red); }
+.page-header p { color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:2px; }
+
+.login-prompt { text-align:center; padding:80px 48px; }
+.login-prompt p { font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:13px; margin-bottom:24px; letter-spacing:1px; }
+.login-prompt a { color:var(--red); text-decoration:none; font-family:"IBM Plex Mono",monospace; }
+
+.dash { max-width:1100px; margin:0 auto; padding:0 48px 60px; }
+
+/* Tabs */
+.tab-bar { display:flex; gap:1px; background:var(--border); margin-bottom:32px; }
+.tab { padding:12px 24px; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; cursor:pointer; background:var(--bg2); color:var(--muted); transition:all 0.2s; border:none; }
+.tab:hover { color:var(--red); }
+.tab.active { background:var(--bg3); color:var(--red); border-bottom:2px solid var(--red); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+.profile-card { background:var(--bg2); border:1px solid var(--border); padding:28px 32px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; }
+.profile-info h3 { font-size:18px; color:#fff; margin-bottom:4px; font-weight:600; }
+.profile-info p { font-size:12px; color:var(--muted); font-family:"IBM Plex Mono",monospace; }
+.profile-badge { background:var(--bg3); border:1px solid var(--border); padding:6px 16px; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:3px; color:var(--red); text-transform:uppercase; }
+
+.section-label { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--red); margin:28px 0 14px; display:flex; align-items:center; gap:16px; }
+.section-label::after { content:""; flex:1; height:1px; background:var(--border); }
+
+.api-box { background:var(--bg2); border:1px solid var(--border); padding:24px; margin-bottom:24px; }
+.api-box h4 { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:14px; text-transform:uppercase; }
+.api-key-row { display:flex; align-items:center; gap:12px; }
+.api-key-display { flex:1; background:var(--bg); border:1px solid var(--border); padding:12px 16px; font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--red); letter-spacing:1px; overflow:hidden; text-overflow:ellipsis; }
+.icon-btn { background:var(--bg3); border:1px solid var(--border); color:var(--muted); padding:12px 18px; font-size:11px; letter-spacing:1px; cursor:pointer; font-family:"IBM Plex Mono",monospace; text-transform:uppercase; transition:all 0.2s; }
+.icon-btn:hover { border-color:var(--red); color:var(--red); }
+
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th { font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:left; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--bg2); }
+.data-table td { padding:12px 16px; font-size:12px; border-bottom:1px solid var(--border); }
+.data-table tr:hover td { background:var(--bg2); }
+.data-table tbody { background:var(--bg); }
+.badge { padding:3px 10px; font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; }
+.badge-green { background:rgba(0,204,68,0.1); color:#00cc44; border:1px solid rgba(0,204,68,0.2); }
+.badge-red { background:rgba(204,0,0,0.1); color:var(--red); border:1px solid rgba(204,0,0,0.2); }
+.badge-yellow { background:rgba(204,204,0,0.1); color:#cccc00; border:1px solid rgba(204,204,0,0.2); }
+
+.action-link { color:var(--red); font-family:"IBM Plex Mono",monospace; font-size:10px; text-decoration:none; letter-spacing:1px; border:1px solid rgba(204,0,0,0.3); padding:4px 10px; transition:all 0.2s; }
+.action-link:hover { background:var(--red); color:#fff; }
+
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); margin-bottom:24px; }
+.stat-box { background:var(--bg2); padding:24px; text-align:center; }
+.stat-box .num { font-family:"IBM Plex Mono",monospace; font-size:32px; font-weight:700; color:var(--red); display:block; }
+.stat-box .lbl { font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+
+.quick-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-bottom:24px; }
+.quick-action { background:var(--bg2); padding:24px; text-decoration:none; transition:background 0.2s; position:relative; overflow:hidden; }
+.quick-action::after { content:""; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--red); transform:scaleX(0); transform-origin:left; transition:transform 0.3s; }
+.quick-action:hover::after { transform:scaleX(1); }
+.quick-action:hover { background:var(--bg3); }
+.quick-action .icon { font-size:28px; margin-bottom:12px; display:block; }
+.quick-action h4 { font-family:"IBM Plex Mono",monospace; font-size:11px; color:#fff; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+.quick-action p { font-size:11px; color:var(--muted); }
+
+.service-card { background:var(--bg2); border:1px solid var(--border); padding:20px 24px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+.service-card h4 { font-size:13px; color:#fff; margin-bottom:4px; }
+.service-card p { font-size:11px; color:var(--muted); font-family:"IBM Plex Mono",monospace; }
+
+.download-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1px; background:var(--border); }
+.download-card { background:var(--bg2); padding:24px; }
+.download-card h4 { font-size:13px; color:#fff; margin-bottom:6px; }
+.download-card p { font-size:11px; color:var(--muted); margin-bottom:16px; }
+.dl-btn { background:transparent; border:1px solid var(--red); color:var(--red); padding:8px 18px; font-size:10px; letter-spacing:2px; cursor:pointer; font-family:"IBM Plex Mono",monospace; text-decoration:none; display:inline-block; transition:all 0.2s; text-transform:uppercase; }
+.dl-btn:hover { background:var(--red); color:#fff; }
+
+.empty-state { text-align:center; padding:40px; font-family:"IBM Plex Mono",monospace; color:var(--dim); font-size:12px; letter-spacing:1px; }
+
+footer { padding:20px 48px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; margin-top:20px; }
+footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/">ARIA</a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/store">Store</a>
+    <a href="/portal">Portal</a>
+    <a class="nav-btn" href="#" id="navAction" onclick="doLogout(event)">SIGN OUT</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1 id="pageTitle">Customer <span>Portal</span></h1>
+  <p id="pageSubtitle">// Manage your account, purchases, and API access</p>
+</div>
+
+<div id="loginPrompt" class="login-prompt" style="display:none;">
+  <p>// Authentication required</p>
+  <a href="/">Sign In</a> &nbsp;|&nbsp; <a href="/store">Create Account</a>
+</div>
+
+<div id="dashboard" class="dash" style="display:none;">
+
+  <div class="profile-card">
+    <div class="profile-info">
+      <h3 id="profileName">---</h3>
+      <p id="profileEmail">---</p>
+    </div>
+    <span class="profile-badge" id="profileRole">---</span>
+  </div>
+
+  <!-- Tabs (populated by JS based on role) -->
+  <div class="tab-bar" id="tabBar"></div>
+
+  <!-- ADMIN: Overview -->
+  <div class="tab-content" id="tab-overview">
+    <div class="section-label">System Stats</div>
+    <div class="stat-grid">
+      <div class="stat-box"><span class="num" id="statUsers">—</span><div class="lbl">Total Scans</div></div>
+      <div class="stat-box"><span class="num" id="statOrders">—</span><div class="lbl">Threats Found</div></div>
+      <div class="stat-box"><span class="num" id="statRevenue">—</span><div class="lbl">IOCs Extracted</div></div>
+      <div class="stat-box"><span class="num" id="statScans">—</span><div class="lbl">Scans Run</div></div>
+    </div>
+    <div class="section-label">Quick Actions</div>
+    <div class="quick-actions">
+      <a class="quick-action" href="/test">
+        <span class="icon">🔬</span>
+        <h4>Malware Analyzer</h4>
+        <p>Launch the OpenClaw analysis platform</p>
+      </a>
+      <a class="quick-action" href="#" onclick="switchTab('tab-users');return false;">
+        <span class="icon">👥</span>
+        <h4>User Management</h4>
+        <p>View and manage registered users</p>
+      </a>
+      <a class="quick-action" href="#" onclick="switchTab('tab-allorders');return false;">
+        <span class="icon">📦</span>
+        <h4>All Orders</h4>
+        <p>View and manage customer purchases</p>
+      </a>
+    </div>
+  </div>
+
+  <!-- ADMIN: Users -->
+  <div class="tab-content" id="tab-users">
+    <div class="section-label">Registered Users</div>
+    <div style="background:var(--bg);border:1px solid var(--border);overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="usersBody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ADMIN: All Orders -->
+  <div class="tab-content" id="tab-allorders">
+    <div class="section-label">All Orders</div>
+    <div style="background:var(--bg);border:1px solid var(--border);overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Order ID</th><th>User</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>PayPal</th><th>Action</th></tr></thead>
+        <tbody id="allOrdersBody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CUSTOMER / SHARED: My Account -->
+  <div class="tab-content" id="tab-account">
+    <div class="section-label">API Access</div>
+    <div class="api-box">
+      <h4>Your API Key</h4>
+      <div class="api-key-row">
+        <div class="api-key-display" id="apiKeyDisplay">Loading...</div>
+        <button class="icon-btn" onclick="copyApiKey()">COPY</button>
+        <button class="icon-btn" onclick="regenApiKey()">REGENERATE</button>
+      </div>
+    </div>
+
+    <div class="section-label">Active Services</div>
+    <div id="servicesList"><div class="empty-state">No active services</div></div>
+
+    <div class="section-label">Downloads</div>
+    <div class="download-grid" id="downloadsList">
+      <div class="empty-state" style="grid-column:1/-1;">No downloads available</div>
+    </div>
+
+    <div class="section-label">Order History</div>
+    <div style="background:var(--bg);border:1px solid var(--border);overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>PayPal</th></tr></thead>
+        <tbody id="ordersBody"><tr><td colspan="6" class="empty-state">No orders yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer><p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p></footer>
+
+<script>
+var currentUser = null;
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var el = document.getElementById(id);
+  if(el) el.classList.add('active');
+  var btn = document.querySelector('.tab[data-tab="'+id+'"]');
+  if(btn) btn.classList.add('active');
+}
+
+function buildTabs(role) {
+  var tabs = [];
+  if(role === 'admin' || role === 'analyst') {
+    tabs = [
+      {id:'tab-overview', label:'Overview'},
+      {id:'tab-users', label:'Users'},
+      {id:'tab-allorders', label:'All Orders'},
+      {id:'tab-account', label:'My Account'}
+    ];
+    document.getElementById('pageTitle').innerHTML = 'Admin <span style="color:var(--red)">Dashboard</span>';
+    document.getElementById('pageSubtitle').textContent = '// System management and analytics';
+  } else {
+    tabs = [{id:'tab-account', label:'My Account'}];
+  }
+  var bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  tabs.forEach(function(t, i) {
+    var btn = document.createElement('button');
+    btn.className = 'tab' + (i===0?' active':'');
+    btn.setAttribute('data-tab', t.id);
+    btn.textContent = t.label;
+    btn.onclick = function(){ switchTab(t.id); };
+    bar.appendChild(btn);
+  });
+  switchTab(tabs[0].id);
+}
+
+function init() {
+  fetch('/api/me').then(function(r){return r.json();}).then(function(d){
+    if(d.authenticated) {
+      currentUser = d;
+      document.getElementById('loginPrompt').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('profileName').textContent = d.full_name || d.username;
+      document.getElementById('profileEmail').textContent = d.email || d.username;
+      document.getElementById('profileRole').textContent = d.role.toUpperCase();
+      buildTabs(d.role);
+      loadAccountData();
+      if(d.role === 'admin' || d.role === 'analyst') {
+        loadAdminData();
+      }
+    } else {
+      document.getElementById('loginPrompt').style.display = 'block';
+    }
+  }).catch(function(){
+    document.getElementById('loginPrompt').style.display = 'block';
+  });
+}
+
+function loadAdminData() {
+  // Stats
+  fetch('/api/stats').then(function(r){return r.json();}).then(function(d){
+    if(d.total_scans !== undefined) document.getElementById('statScans').textContent = d.total_scans;
+    if(d.threats !== undefined) document.getElementById('statOrders').textContent = d.threats;
+    if(d.iocs !== undefined) document.getElementById('statRevenue').textContent = d.iocs;
+  }).catch(function(){
+    // Fallback — show dashes
+    ['statUsers','statOrders','statRevenue','statScans'].forEach(function(id){ document.getElementById(id).textContent = 'N/A'; });
+  });
+
+  // All users
+  fetch('/api/admin/users').then(function(r){return r.json();}).then(function(d){
+    if(d.users && d.users.length > 0) {
+      var html = '';
+      d.users.forEach(function(u){
+        var isAdmin = u.role === 'admin';
+        var uid = u.id || '';
+        var uname = u.username || '';
+        html += '<tr>'
+          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);">'+uname+'</td>'
+          +'<td>'+(u.full_name||'—')+'</td>'
+          +'<td style="color:var(--muted);">'+(u.email||'—')+'</td>'
+          +'<td><span class="badge '+(isAdmin?'badge-red':u.role==='analyst'?'badge-yellow':'badge-green')+'">'+u.role+'</span></td>'
+          +'<td style="color:var(--muted);font-family:IBM Plex Mono,monospace;font-size:11px;">'+(u.created_at?new Date(u.created_at).toLocaleDateString():'—')+'</td>'
+          +'<td style="white-space:nowrap;">'
+          +(!isAdmin?'<button class="usr-action-btn" data-action="ban" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(204,0,0,0.15);border:1px solid rgba(204,0,0,0.5);color:#cc0000;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">BAN</button>':'')
+          +'<button class="usr-action-btn" data-action="reset" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(80,80,80,0.2);border:1px solid #444;color:#aaa;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">RESET PW</button>'
+          +(!isAdmin?'<button class="usr-action-btn" data-action="refund" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(0,100,200,0.15);border:1px solid rgba(0,100,200,0.4);color:#4488ff;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;">REFUND ALL</button>':'')
+          +'</td>'
+          +'</tr>';
+      });
+      document.getElementById('usersBody').innerHTML = html;
+    } else {
+      document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="empty-state">No users found</td></tr>';
+    }
+  }).catch(function(){
+    document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="empty-state">API endpoint not available</td></tr>';
+  });
+
+  // All orders
+  fetch('/api/orders').then(function(r){return r.json();}).then(function(d){
+    if(d.orders && d.orders.length > 0) {
+      var html = '';
+      d.orders.forEach(function(o){
+        html += '<tr>'
+          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);font-weight:600;">'+o.order_id+'</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;">'+( o.username||o.user_id||'—')+'</td>'
+          +'<td style="color:var(--muted);font-size:11px;">'+new Date(o.created_at).toLocaleDateString()+'</td>'
+          +'<td>'+(o.item_count||'—')+' item(s)</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;">$'+parseFloat(o.total||0).toFixed(2)+'</td>'
+          +'<td><span class="badge badge-green">'+o.status+'</span></td>'
+          +'<td style="color:var(--muted);font-size:11px;">'+(o.paypal_order_id||'N/A')+'</td>'
+          +'</tr>';
+      });
+      document.getElementById('allOrdersBody').innerHTML = html;
+    } else {
+      document.getElementById('allOrdersBody').innerHTML = '<tr><td colspan="7" class="empty-state">No orders yet</td></tr>';
+    }
+  }).catch(function(){
+    document.getElementById('allOrdersBody').innerHTML = '<tr><td colspan="7" class="empty-state">API endpoint not available</td></tr>';
+  });
+}
+
+function loadAccountData() {
+  fetch('/api/my/apikey').then(function(r){return r.json();}).then(function(d){
+    document.getElementById('apiKeyDisplay').textContent = d.api_key || 'No API key generated';
+  }).catch(function(){ document.getElementById('apiKeyDisplay').textContent = 'Error loading'; });
+
+  fetch('/api/my/orders').then(function(r){return r.json();}).then(function(d){
+    if(d.orders && d.orders.length > 0) {
+      var html = '';
+      d.orders.forEach(function(o){
+        html += '<tr>'
+          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);font-weight:600;">'+o.order_id+'</td>'
+          +'<td style="color:var(--muted);font-size:11px;">'+new Date(o.created_at).toLocaleDateString()+'</td>'
+          +'<td>'+(o.item_count||1)+' item(s)</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;">$'+parseFloat(o.total).toFixed(2)+'</td>'
+          +'<td><span class="badge badge-green">'+o.status+'</span></td>'
+          +'<td style="color:var(--muted);font-size:11px;">'+(o.paypal_order_id||'N/A')+'</td>'
+          +'</tr>';
+      });
+      document.getElementById('ordersBody').innerHTML = html;
+    }
+  }).catch(function(){});
+
+  var serviceActions = {
+    scan: '<a href="/test" class="action-link">OPEN PLATFORM</a>',
+    report: '<a href="/test" class="action-link">GENERATE REPORT</a>',
+    chatbot: '<a href="/store" class="action-link">OPEN CHATBOT</a>',
+    ioc: '<span style="font-size:11px;color:var(--muted);font-family:IBM Plex Mono,monospace;">Use API key at /api/iocs</span>',
+    agentic: '<a href="/test" class="action-link">OPEN PIPELINE</a>'
+  };
+  fetch('/api/my/services').then(function(r){return r.json();}).then(function(d){
+    if(d.services && d.services.length > 0) {
+      var html = ''; var seen = {};
+      d.services.forEach(function(s){
+        if(seen[s.product_id]) return;
+        seen[s.product_id] = true;
+        var credits = s.credits;
+        var creditBadge = credits===-1 ? '<span class="badge badge-green">UNLIMITED</span>'
+          : credits>0 ? '<span class="badge badge-yellow">'+credits+' CREDITS</span>'
+          : '<span class="badge badge-red">NO CREDITS</span>';
+        html += '<div class="service-card">'
+          +'<div><h4>'+s.name+'</h4><p>Activated: '+new Date(s.activated_at).toLocaleDateString()+' — '+creditBadge+'</p></div>'
+          +'<div style="display:flex;align-items:center;gap:12px;"><span style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#00cc44;letter-spacing:1px;">ACTIVE</span>'+(serviceActions[s.product_id]||'')+'</div>'
+          +'</div>';
+      });
+      document.getElementById('servicesList').innerHTML = html;
+    }
+  }).catch(function(){});
+
+  fetch('/api/my/downloads').then(function(r){return r.json();}).then(function(d){
+    if(d.downloads && d.downloads.length > 0) {
+      var html = '';
+      d.downloads.forEach(function(dl){
+        html += '<div class="download-card"><h4>'+dl.name+'</h4><p>'+dl.description+'</p><a class="dl-btn" href="'+dl.url+'">DOWNLOAD</a></div>';
+      });
+      document.getElementById('downloadsList').innerHTML = html;
+    }
+  }).catch(function(){});
+}
+
+function copyApiKey() {
+  var key = document.getElementById('apiKeyDisplay').textContent;
+  navigator.clipboard.writeText(key).then(function(){
+    var btn = document.querySelector('.icon-btn');
+    btn.textContent = 'COPIED!';
+    setTimeout(function(){ btn.textContent = 'COPY'; }, 2000);
+  });
+}
+
+function regenApiKey() {
+  if(!confirm('Regenerate API key? The old key will stop working.')) return;
+  fetch('/api/my/apikey/regenerate',{method:'POST'}).then(function(r){return r.json();}).then(function(d){
+    if(d.api_key) document.getElementById('apiKeyDisplay').textContent = d.api_key;
+  });
+}
+
+
+
+function adminRefundOrder(orderId, btn) {
+  if(!confirm('Refund order ' + orderId + '?')) return;
+  btn.disabled = true; btn.textContent = '...';
+  fetch('/api/admin/user-action', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'refund_order', order_id: orderId})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ btn.textContent='REFUNDED'; btn.style.color='#00cc44'; btn.closest('tr').style.opacity='0.5'; }
+    else { btn.textContent='ERR'; btn.disabled=false; alert(d.error||'Failed'); }
+  })
+  .catch(function(){ btn.textContent='FAIL'; btn.disabled=false; });
+}
+
+// Delegated event listener for user action buttons
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.usr-action-btn');
+  if(!btn) return;
+  var action = btn.dataset.action;
+  var uid = btn.dataset.uid;
+  var uname = btn.dataset.uname;
+  adminAction(action, uname, uid, btn);
+});
+
+function adminAction(action, username, userId, btn) {
+  var messages = {
+    ban: 'Ban user ' + username + '? They will be unable to log in.',
+    reset: 'Reset password for ' + username + '? A new temporary password will be set.',
+    refund: 'Issue refund for all orders by ' + username + '?'
+  };
+  if (!confirm(messages[action] || 'Confirm action on ' + username + '?')) return;
+
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  fetch('/api/admin/user-action', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: action, user_id: userId, username: username})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok) {
+      btn.textContent = 'DONE';
+      btn.style.color = '#00cc44';
+      if(action === 'ban') btn.closest('tr').style.opacity = '0.4';
+    } else {
+      btn.textContent = 'ERR';
+      btn.disabled = false;
+      alert('Error: ' + (d.error || 'Unknown error'));
+    }
+  })
+  .catch(function(){
+    btn.textContent = 'FAIL';
+    btn.disabled = false;
+  });
+}
+
+function doLogout(e) {
+  e.preventDefault();
+  fetch('/api/logout',{method:'POST'}).then(function(){ window.location.href = '/'; });
+}
+
+init();
+</script>
+</body>
+</html>
