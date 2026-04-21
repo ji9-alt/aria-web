@@ -180,6 +180,18 @@ footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--di
     </div>
   </div>
 
+
+  <!-- ADMIN: Refund Requests -->
+  <div class="tab-content" id="tab-refunds">
+    <div class="section-label">Pending Refund Requests</div>
+    <div style="background:var(--bg);border:1px solid var(--border);overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Request ID</th><th>User</th><th>Order ID</th><th>Amount</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="refundsBody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- CUSTOMER / SHARED: My Account -->
   <div class="tab-content" id="tab-account">
     <div class="section-label">API Access</div>
@@ -192,7 +204,30 @@ footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--di
       </div>
     </div>
 
-    <div class="section-label">Active Services</div>
+  
+  <!-- Change Password -->
+  <div class="section-label">Change Password</div>
+  <div class="api-box">
+    <h4>Update Your Password</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
+      <div>
+        <label style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:4px;">Current Password</label>
+        <input type="password" id="pwCurrent" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:IBM Plex Mono,monospace;font-size:12px;outline:none;" placeholder="Current password">
+      </div>
+      <div>
+        <label style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:4px;">New Password</label>
+        <input type="password" id="pwNew" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:IBM Plex Mono,monospace;font-size:12px;outline:none;" placeholder="New password">
+      </div>
+      <div>
+        <label style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:4px;">Confirm New</label>
+        <input type="password" id="pwConfirm" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:IBM Plex Mono,monospace;font-size:12px;outline:none;" placeholder="Confirm new password">
+      </div>
+    </div>
+    <div id="pwMsg" style="font-family:IBM Plex Mono,monospace;font-size:11px;margin-top:8px;display:none;"></div>
+    <button onclick="changePassword()" style="margin-top:12px;background:var(--red);color:#fff;border:none;padding:10px 24px;font-size:10px;letter-spacing:3px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-weight:600;text-transform:uppercase;">UPDATE PASSWORD</button>
+  </div>
+
+  <div class="section-label">Active Services</div>
     <div id="servicesList"><div class="empty-state">No active services</div></div>
 
     <div class="section-label">Downloads</div>
@@ -203,7 +238,7 @@ footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--di
     <div class="section-label">Order History</div>
     <div style="background:var(--bg);border:1px solid var(--border);overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>PayPal</th></tr></thead>
+        <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>PayPal</th><th>Action</th></tr></thead>
         <tbody id="ordersBody"><tr><td colspan="6" class="empty-state">No orders yet</td></tr></tbody>
       </table>
     </div>
@@ -232,12 +267,14 @@ function buildTabs(role) {
       {id:'tab-overview', label:'Overview'},
       {id:'tab-users', label:'Users'},
       {id:'tab-allorders', label:'All Orders'},
+      {id:'tab-refunds', label:'Refund Requests'},
       {id:'tab-account', label:'My Account'}
     ];
     document.getElementById('pageTitle').innerHTML = 'Admin <span style="color:var(--red)">Dashboard</span>';
     document.getElementById('pageSubtitle').textContent = '// System management and analytics';
   } else {
-    tabs = [{id:'tab-account', label:'My Account'}];
+    tabs = [{id:'tab-refunds', label:'Refund Requests'},
+      {id:'tab-account', label:'My Account'}];
   }
   var bar = document.getElementById('tabBar');
   bar.innerHTML = '';
@@ -275,6 +312,7 @@ function init() {
 }
 
 function loadAdminData() {
+  loadRefundRequests();
   // Stats
   fetch('/api/stats').then(function(r){return r.json();}).then(function(d){
     if(d.total_scans !== undefined) document.getElementById('statScans').textContent = d.total_scans;
@@ -478,6 +516,96 @@ function adminAction(action, username, userId, btn) {
     btn.textContent = 'FAIL';
     btn.disabled = false;
   });
+}
+
+
+function changePassword() {
+  var cur = document.getElementById('pwCurrent').value;
+  var nw = document.getElementById('pwNew').value;
+  var conf = document.getElementById('pwConfirm').value;
+  var msg = document.getElementById('pwMsg');
+  msg.style.display = 'none';
+  if(!cur||!nw||!conf) { msg.textContent='All fields required.'; msg.style.color='var(--red)'; msg.style.display='block'; return; }
+  if(nw !== conf) { msg.textContent='New passwords do not match.'; msg.style.color='var(--red)'; msg.style.display='block'; return; }
+  if(nw.length < 8) { msg.textContent='Password must be at least 8 characters.'; msg.style.color='var(--red)'; msg.style.display='block'; return; }
+  fetch('/api/my/change-password', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({current_password:cur, new_password:nw})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.ok) {
+      msg.textContent='Password updated successfully.';
+      msg.style.color='#00cc44';
+      msg.style.display='block';
+      document.getElementById('pwCurrent').value='';
+      document.getElementById('pwNew').value='';
+      document.getElementById('pwConfirm').value='';
+    } else {
+      msg.textContent=d.error||'Failed to update password.';
+      msg.style.color='var(--red)';
+      msg.style.display='block';
+    }
+  }).catch(function(){ msg.textContent='Connection error.'; msg.style.color='var(--red)'; msg.style.display='block'; });
+}
+
+function requestRefund(orderId, btn) {
+  var reason = prompt('Reason for refund request (optional):');
+  if(reason === null) return;
+  btn.disabled = true; btn.textContent = '...';
+  fetch('/api/my/request-refund', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({order_id: orderId, reason: reason})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.ok) {
+      btn.textContent='REQUESTED';
+      btn.style.color='#cccc00';
+    } else {
+      btn.textContent='ERR'; btn.disabled=false;
+      alert(d.error||'Failed');
+    }
+  }).catch(function(){ btn.textContent='FAIL'; btn.disabled=false; });
+}
+
+function loadRefundRequests() {
+  fetch('/api/admin/refund-requests').then(function(r){return r.json();}).then(function(d){
+    if(d.requests && d.requests.length > 0) {
+      var html = '';
+      d.requests.forEach(function(r){
+        html += '<tr>'
+          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);">#'+r.id+'</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;">'+(r.username||'—')+'</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);">'+(r.order_id||'—')+'</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;">$'+(parseFloat(r.amount||0).toFixed(2))+'</td>'
+          +'<td style="color:var(--muted);font-size:11px;">'+(r.reason||'No reason provided')+'</td>'
+          +'<td style="color:var(--muted);font-size:11px;">'+(r.created_at?new Date(r.created_at).toLocaleDateString():'—')+'</td>'
+          +'<td style="white-space:nowrap;">'
+          +'<button onclick="handleRefund('+r.id+',\'approve\',this)" style="background:rgba(0,150,0,0.15);border:1px solid rgba(0,150,0,0.4);color:#00cc44;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">APPROVE</button>'
+          +'<button onclick="handleRefund('+r.id+',\'decline\',this)" style="background:rgba(204,0,0,0.15);border:1px solid rgba(204,0,0,0.5);color:#cc0000;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;">DECLINE</button>'
+          +'</td>'
+          +'</tr>';
+      });
+      document.getElementById('refundsBody').innerHTML = html;
+    } else {
+      document.getElementById('refundsBody').innerHTML = '<tr><td colspan="7" class="empty-state">No pending refund requests</td></tr>';
+    }
+  }).catch(function(){
+    document.getElementById('refundsBody').innerHTML = '<tr><td colspan="7" class="empty-state">API endpoint not available</td></tr>';
+  });
+}
+
+function handleRefund(requestId, action, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  fetch('/api/admin/handle-refund', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({request_id: requestId, action: action})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.ok) {
+      btn.closest('tr').style.opacity = '0.4';
+      btn.textContent = action === 'approve' ? 'APPROVED' : 'DECLINED';
+    } else {
+      btn.textContent='ERR'; btn.disabled=false;
+      alert(d.error||'Failed');
+    }
+  }).catch(function(){ btn.textContent='FAIL'; btn.disabled=false; });
 }
 
 function doLogout(e) {

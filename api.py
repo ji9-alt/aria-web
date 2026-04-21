@@ -2776,6 +2776,114 @@ def api_chat():
     # Default response
     return jsonify({"response": "I can help with threat intelligence topics including:\n- Malware types (ransomware, trojans, APTs)\n- MITRE ATT&CK framework\n- IOC analysis & enrichment\n- YARA rule creation\n- Incident response\n- CVE lookups\n- Security best practices\n\nTry asking about a specific threat or technique."})
 
+
+@app.route("/api/my/change-password", methods=["POST"])
+@require_auth
+def api_change_password():
+    data = request.get_json(force=True)
+    current = str(data.get("current_password", ""))
+    new_pw = str(data.get("new_password", ""))
+    if not current or not new_pw:
+        return jsonify({"error": "All fields required"}), 400
+    if len(new_pw) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    try:
+        import db
+        user = db.authenticate(request.user['username'], current)
+        if not user:
+            return jsonify({"error": "Current password is incorrect"}), 401
+        hashed = db.hash_password(new_pw)
+        db.query("UPDATE users SET password_hash=%s WHERE id=%s", (hashed, request.user['id']), fetch=False)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/my/request-refund", methods=["POST"])
+@require_auth
+def api_request_refund():
+    data = request.get_json(force=True)
+    order_id = str(data.get("order_id", ""))
+    reason = str(data.get("reason", ""))[:500]
+    if not order_id:
+        return jsonify({"error": "Order ID required"}), 400
+    try:
+        import db
+        # Verify order belongs to user
+        order = db.query_one("SELECT * FROM orders WHERE order_id=%s AND user_id=%s", (order_id, request.user['id']))
+        if not order:
+            return jsonify({"error": "Order not found"}), 404
+        if order['status'] != 'confirmed':
+            return jsonify({"error": "Only confirmed orders can be refunded"}), 400
+        # Create refund_requests table if needed
+        db.query("""CREATE TABLE IF NOT EXISTS refund_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            order_id VARCHAR(20),
+            reason TEXT,
+            status VARCHAR(20) DEFAULT 'pending',
+            amount DECIMAL(10,2),
+            created_at TIMESTAMP DEFAULT NOW()
+        )""", fetch=False)
+        db.query("INSERT INTO refund_requests (user_id, order_id, reason, amount) VALUES (%s,%s,%s,%s)",
+                 (request.user['id'], order_id, reason, order['total']), fetch=False)
+        db.query("UPDATE orders SET status='pending_refund' WHERE order_id=%s", (order_id,), fetch=False)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/refund-requests")
+@require_admin
+def api_admin_refund_requests():
+    try:
+        import db
+        db.query("""CREATE TABLE IF NOT EXISTS refund_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            order_id VARCHAR(20),
+            reason TEXT,
+            status VARCHAR(20) DEFAULT 'pending',
+            amount DECIMAL(10,2),
+            created_at TIMESTAMP DEFAULT NOW()
+        )""", fetch=False)
+        rows = db.query("""SELECT r.*, u.username FROM refund_requests r
+                          LEFT JOIN users u ON r.user_id=u.id
+                          WHERE r.status='pending'
+                          ORDER BY r.created_at DESC""")
+        for r in (rows or []):
+            if r.get('created_at'):
+                try: r['created_at'] = r['created_at'].isoformat()
+                except: pass
+        return jsonify({"requests": rows or []})
+    except Exception as e:
+        return jsonify({"requests": [], "error": str(e)})
+
+
+@app.route("/api/admin/handle-refund", methods=["POST"])
+@require_admin
+def api_handle_refund():
+    data = request.get_json(force=True)
+    request_id = data.get("request_id")
+    action = data.get("action")
+    if not request_id or action not in ("approve", "decline"):
+        return jsonify({"error": "Invalid request"}), 400
+    try:
+        import db
+        req = db.query_one("SELECT * FROM refund_requests WHERE id=%s", (request_id,))
+        if not req:
+            return jsonify({"error": "Request not found"}), 404
+        if action == "approve":
+            db.query("UPDATE orders SET status='refunded' WHERE order_id=%s", (req['order_id'],), fetch=False)
+            db.query("UPDATE refund_requests SET status='approved' WHERE id=%s", (request_id,), fetch=False)
+        else:
+            db.query("UPDATE orders SET status='confirmed' WHERE order_id=%s", (req['order_id'],), fetch=False)
+            db.query("UPDATE refund_requests SET status='declined' WHERE id=%s", (request_id,), fetch=False)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     # Initialize database connection and default users
     try:
