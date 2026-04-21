@@ -2776,38 +2776,3 @@ if __name__ == "__main__":
 
 
 
-@app.route("/api/admin/users")
-@require_admin
-def api_admin_users():
-    try:
-        import db
-        conn = db.get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
-        cols = [c[0] for c in cur.description]
-        users = []
-        for row in cur.fetchall():
-            u = dict(zip(cols, row))
-            if u.get('created_at'):
-                try: u['created_at'] = u['created_at'].isoformat()
-                except: pass
-            users.append(u)
-        return jsonify({"users": users})
-    except Exception as e:
-        return jsonify({"users": [], "error": str(e)})
-
-
-@app.route("/api/admin/stats")
-@require_admin
-def api_admin_stats():
-    try:
-        import db
-        conn = db.get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM users")
-        total_users = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*), COALESCE(SUM(total),0) FROM orders")
-        row = cur.fetchone()
-        return jsonify({"total_users": total_users, "total_orders": row[0], "total_revenue": float(row[1]), "total_scans": db.get_scan_count() if hasattr(db,'get_scan_count') else 0})
-    except Exception as e:
-        return jsonify({"total_users":0,"total_orders":0,"total_revenue":0,"total_scans":0,"error":str(e)})
