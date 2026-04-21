@@ -2601,12 +2601,15 @@ def api_admin_users():
         import db
         rows = db.query("SELECT id, username, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
         for r in (rows or []):
-            if r.get('created_at'):
-                try: r['created_at'] = r['created_at'].isoformat()
-                except: pass
+            if r.get("created_at"):
+                try:
+                    r["created_at"] = r["created_at"].isoformat()
+                except Exception:
+                    pass
         return jsonify({"users": rows or []})
     except Exception as e:
         return jsonify({"users": [], "error": str(e)})
+
 
 @app.route("/api/admin/orders")
 @require_admin
@@ -2615,24 +2618,57 @@ def api_admin_orders():
         import db
         rows = db.query("SELECT o.*, u.username FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC LIMIT 200")
         for r in (rows or []):
-            if r.get('created_at'):
-                try: r['created_at'] = r['created_at'].isoformat()
-                except: pass
+            if r.get("created_at"):
+                try:
+                    r["created_at"] = r["created_at"].isoformat()
+                except Exception:
+                    pass
         return jsonify({"orders": rows or []})
     except Exception as e:
         return jsonify({"orders": [], "error": str(e)})
+
 
 @app.route("/api/admin/stats")
 @require_admin
 def api_admin_stats():
     try:
         import db
-        users = db.query_one("SELECT COUNT(*) as cnt FROM users") or {"cnt": 0}
-        orders = db.query_one("SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as rev FROM orders") or {"cnt": 0, "rev": 0}
+        u = db.query_one("SELECT COUNT(*) as cnt FROM users") or {"cnt": 0}
+        o = db.query_one("SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as rev FROM orders") or {"cnt": 0, "rev": 0}
         scans = db.get_scan_count() if hasattr(db, "get_scan_count") else 0
-        return jsonify({"total_users": users["cnt"], "total_orders": orders["cnt"], "total_revenue": float(orders["rev"]), "total_scans": scans})
+        return jsonify({"total_users": u["cnt"], "total_orders": o["cnt"], "total_revenue": float(o["rev"]), "total_scans": scans})
     except Exception as e:
         return jsonify({"total_users": 0, "total_orders": 0, "total_revenue": 0, "total_scans": 0, "error": str(e)})
+
+
+@app.route("/api/admin/user-action", methods=["POST"])
+@require_admin
+def api_admin_user_action():
+    data = request.get_json(force=True)
+    action = data.get("action")
+    user_id = data.get("user_id")
+    order_id = data.get("order_id")
+    try:
+        import db
+        if action == "ban":
+            db.query("UPDATE users SET banned=1 WHERE id=?", (user_id,), fetch=False)
+            db.query("DELETE FROM sessions WHERE user_id=?", (user_id,), fetch=False)
+            return jsonify({"ok": True})
+        elif action == "reset":
+            import secrets as _sec
+            tmp = _sec.token_urlsafe(10)
+            db.query("UPDATE users SET password_hash=? WHERE id=?", (db.hash_password(tmp), user_id), fetch=False)
+            return jsonify({"ok": True, "temp_password": tmp})
+        elif action == "refund":
+            db.query("UPDATE orders SET status='refunded' WHERE user_id=?", (user_id,), fetch=False)
+            return jsonify({"ok": True})
+        elif action == "refund_order":
+            db.query("UPDATE orders SET status='refunded' WHERE order_id=?", (order_id,), fetch=False)
+            return jsonify({"ok": True})
+        else:
+            return jsonify({"error": "Unknown action"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/orders")
 @require_admin
@@ -2755,57 +2791,3 @@ if __name__ == "__main__":
 
 
 
-if __name__ == "__main__":
-    # Initialize database connection and default users
-    try:
-        import db
-        db.ensure_default_users()
-        print("[ARIA] Database connected, default users ready")
-        print("[ARIA] Login: admin / AriaAdmin2026!  or  analyst / AriaAnalyst2026!")
-    except Exception as _db_err:
-        print(f"[ARIA] Database not available ({_db_err}) — running with fallback auth")
-
-    cert = os.path.join(BASE_DIR, 'cert.pem')
-    key = os.path.join(BASE_DIR, 'key.pem')
-    if os.path.exists(cert) and os.path.exists(key):
-        import ssl
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(cert, key)
-        app.run(host="0.0.0.0", port=443, ssl_context=context)
-    else:
-        print("[ARIA] No TLS certs found, running on HTTP port 5000")
-        app.run(host="0.0.0.0", port=5000)
-
-
-
-
-
-
-@app.route("/api/admin/user-action", methods=["POST"])
-@require_admin
-def api_admin_user_action():
-    data = request.get_json(force=True)
-    action = data.get("action")
-    user_id = data.get("user_id")
-    username = data.get("username", "")
-    if not action or not user_id:
-        return jsonify({"error": "Missing action or user_id"}), 400
-    try:
-        import db
-        if action == "ban":
-            db.query("UPDATE users SET banned=1 WHERE id=?", (user_id,), fetch=False)
-            db.query("DELETE FROM sessions WHERE user_id=?", (user_id,), fetch=False)
-            return jsonify({"ok": True, "message": f"User {username} banned"})
-        elif action == "reset":
-            import secrets
-            temp_pw = secrets.token_urlsafe(10)
-            hashed = db.hash_password(temp_pw)
-            db.query("UPDATE users SET password_hash=? WHERE id=?", (hashed, user_id), fetch=False)
-            return jsonify({"ok": True, "temp_password": temp_pw, "message": f"Password reset for {username}"})
-        elif action == "refund":
-            db.query("UPDATE orders SET status='refunded' WHERE user_id=?", (user_id,), fetch=False)
-            return jsonify({"ok": True, "message": f"All orders refunded for {username}"})
-        else:
-            return jsonify({"error": "Unknown action"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
