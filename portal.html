@@ -10,26 +10,26 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:"IBM Plex Sans",sans-serif; min-height:100vh; }
 nav { display:flex; justify-content:space-between; align-items:center; padding:18px 48px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; background:rgba(8,8,8,0.95); backdrop-filter:blur(10px); }
-.nav-logo { font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:700; letter-spacing:8px; color:var(--red); text-shadow:0 0 30px rgba(204,0,0,0.3); text-decoration:none; }
+.nav-logo { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:22px; font-weight:700; letter-spacing:8px; color:var(--red); text-shadow:0 0 30px rgba(204,0,0,0.3); text-decoration:none; }
 .nav-links { display:flex; gap:28px; align-items:center; }
-.nav-links a { color:var(--muted); font-size:11px; text-decoration:none; letter-spacing:2px; text-transform:uppercase; font-family:"IBM Plex Mono",monospace; transition:color 0.2s; }
+.nav-links a { color:var(--muted); font-size:11px; text-decoration:none; letter-spacing:2px; text-transform:uppercase; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; transition:color 0.2s; }
 .nav-links a:hover { color:var(--red); }
-.nav-btn { background:var(--red); color:white; border:none; padding:9px 22px; font-size:11px; letter-spacing:3px; cursor:pointer; text-decoration:none; font-family:"IBM Plex Mono",monospace; font-weight:600; text-transform:uppercase; }
+.nav-btn { background:var(--red); color:white; border:none; padding:9px 22px; font-size:11px; letter-spacing:3px; cursor:pointer; text-decoration:none; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-weight:600; text-transform:uppercase; }
 
 .page-header { text-align:center; padding:48px 48px 32px; }
 .page-header h1 { font-size:36px; font-weight:700; color:#fff; letter-spacing:-1px; margin-bottom:8px; }
 .page-header h1 span { color:var(--red); }
-.page-header p { color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:2px; }
+.page-header p { color:var(--muted); font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:11px; letter-spacing:2px; }
 
 .login-prompt { text-align:center; padding:80px 48px; }
-.login-prompt p { font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:13px; margin-bottom:24px; letter-spacing:1px; }
-.login-prompt a { color:var(--red); text-decoration:none; font-family:"IBM Plex Mono",monospace; }
+.login-prompt p { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; color:var(--muted); font-size:13px; margin-bottom:24px; letter-spacing:1px; }
+.login-prompt a { color:var(--red); text-decoration:none; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; }
 
 .dash { max-width:1100px; margin:0 auto; padding:0 48px 60px; }
 
 /* Tabs */
 .tab-bar { display:flex; gap:1px; background:var(--border); margin-bottom:32px; }
-.tab { padding:12px 24px; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; cursor:pointer; background:var(--bg2); color:var(--muted); transition:all 0.2s; border:none; }
+.tab { padding:12px 24px; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; cursor:pointer; background:var(--bg2); color:var(--muted); transition:all 0.2s; border:none; }
 .tab:hover { color:var(--red); }
 .tab.active { background:var(--bg3); color:var(--red); border-bottom:2px solid var(--red); }
 .tab-content { display:none; }
@@ -37,36 +37,36 @@ nav { display:flex; justify-content:space-between; align-items:center; padding:1
 
 .profile-card { background:var(--bg2); border:1px solid var(--border); padding:28px 32px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; }
 .profile-info h3 { font-size:18px; color:#fff; margin-bottom:4px; font-weight:600; }
-.profile-info p { font-size:12px; color:var(--muted); font-family:"IBM Plex Mono",monospace; }
-.profile-badge { background:var(--bg3); border:1px solid var(--border); padding:6px 16px; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:3px; color:var(--red); text-transform:uppercase; }
+.profile-info p { font-size:12px; color:var(--muted); font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; }
+.profile-badge { background:var(--bg3); border:1px solid var(--border); padding:6px 16px; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:10px; letter-spacing:3px; color:var(--red); text-transform:uppercase; }
 
-.section-label { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--red); margin:28px 0 14px; display:flex; align-items:center; gap:16px; }
+.section-label { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--red); margin:28px 0 14px; display:flex; align-items:center; gap:16px; }
 .section-label::after { content:""; flex:1; height:1px; background:var(--border); }
 
 .api-box { background:var(--bg2); border:1px solid var(--border); padding:24px; margin-bottom:24px; }
-.api-box h4 { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:14px; text-transform:uppercase; }
+.api-box h4 { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:14px; text-transform:uppercase; }
 .api-key-row { display:flex; align-items:center; gap:12px; }
-.api-key-display { flex:1; background:var(--bg); border:1px solid var(--border); padding:12px 16px; font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--red); letter-spacing:1px; overflow:hidden; text-overflow:ellipsis; }
-.icon-btn { background:var(--bg3); border:1px solid var(--border); color:var(--muted); padding:12px 18px; font-size:11px; letter-spacing:1px; cursor:pointer; font-family:"IBM Plex Mono",monospace; text-transform:uppercase; transition:all 0.2s; }
+.api-key-display { flex:1; background:var(--bg); border:1px solid var(--border); padding:12px 16px; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:13px; color:var(--red); letter-spacing:1px; overflow:hidden; text-overflow:ellipsis; }
+.icon-btn { background:var(--bg3); border:1px solid var(--border); color:var(--muted); padding:12px 18px; font-size:11px; letter-spacing:1px; cursor:pointer; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; text-transform:uppercase; transition:all 0.2s; }
 .icon-btn:hover { border-color:var(--red); color:var(--red); }
 
 .data-table { width:100%; border-collapse:collapse; }
-.data-table th { font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:left; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--bg2); }
+.data-table th { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:left; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--bg2); }
 .data-table td { padding:12px 16px; font-size:12px; border-bottom:1px solid var(--border); }
 .data-table tr:hover td { background:var(--bg2); }
 .data-table tbody { background:var(--bg); }
-.badge { padding:3px 10px; font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; }
+.badge { padding:3px 10px; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; }
 .badge-green { background:rgba(0,204,68,0.1); color:#00cc44; border:1px solid rgba(0,204,68,0.2); }
 .badge-red { background:rgba(204,0,0,0.1); color:var(--red); border:1px solid rgba(204,0,0,0.2); }
 .badge-yellow { background:rgba(204,204,0,0.1); color:#cccc00; border:1px solid rgba(204,204,0,0.2); }
 
-.action-link { color:var(--red); font-family:"IBM Plex Mono",monospace; font-size:10px; text-decoration:none; letter-spacing:1px; border:1px solid rgba(204,0,0,0.3); padding:4px 10px; transition:all 0.2s; }
+.action-link { color:var(--red); font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:10px; text-decoration:none; letter-spacing:1px; border:1px solid rgba(204,0,0,0.3); padding:4px 10px; transition:all 0.2s; }
 .action-link:hover { background:var(--red); color:#fff; }
 
 .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); margin-bottom:24px; }
 .stat-box { background:var(--bg2); padding:24px; text-align:center; }
-.stat-box .num { font-family:"IBM Plex Mono",monospace; font-size:32px; font-weight:700; color:var(--red); display:block; }
-.stat-box .lbl { font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+.stat-box .num { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:32px; font-weight:700; color:var(--red); display:block; }
+.stat-box .lbl { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
 
 .quick-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-bottom:24px; }
 .quick-action { background:var(--bg2); padding:24px; text-decoration:none; transition:background 0.2s; position:relative; overflow:hidden; }
@@ -74,24 +74,24 @@ nav { display:flex; justify-content:space-between; align-items:center; padding:1
 .quick-action:hover::after { transform:scaleX(1); }
 .quick-action:hover { background:var(--bg3); }
 .quick-action .icon { font-size:28px; margin-bottom:12px; display:block; }
-.quick-action h4 { font-family:"IBM Plex Mono",monospace; font-size:11px; color:#fff; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+.quick-action h4 { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:11px; color:#fff; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
 .quick-action p { font-size:11px; color:var(--muted); }
 
 .service-card { background:var(--bg2); border:1px solid var(--border); padding:20px 24px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
 .service-card h4 { font-size:13px; color:#fff; margin-bottom:4px; }
-.service-card p { font-size:11px; color:var(--muted); font-family:"IBM Plex Mono",monospace; }
+.service-card p { font-size:11px; color:var(--muted); font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; }
 
 .download-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1px; background:var(--border); }
 .download-card { background:var(--bg2); padding:24px; }
 .download-card h4 { font-size:13px; color:#fff; margin-bottom:6px; }
 .download-card p { font-size:11px; color:var(--muted); margin-bottom:16px; }
-.dl-btn { background:transparent; border:1px solid var(--red); color:var(--red); padding:8px 18px; font-size:10px; letter-spacing:2px; cursor:pointer; font-family:"IBM Plex Mono",monospace; text-decoration:none; display:inline-block; transition:all 0.2s; text-transform:uppercase; }
+.dl-btn { background:transparent; border:1px solid var(--red); color:var(--red); padding:8px 18px; font-size:10px; letter-spacing:2px; cursor:pointer; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; text-decoration:none; display:inline-block; transition:all 0.2s; text-transform:uppercase; }
 .dl-btn:hover { background:var(--red); color:#fff; }
 
-.empty-state { text-align:center; padding:40px; font-family:"IBM Plex Mono",monospace; color:var(--dim); font-size:12px; letter-spacing:1px; }
+.empty-state { text-align:center; padding:40px; font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; color:var(--dim); font-size:12px; letter-spacing:1px; }
 
 footer { padding:20px 48px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; margin-top:20px; }
-footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
+footer p { font-family:"IBM Plex Mono",Consolas,"Courier New",monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
 </style>
 </head>
 <body>
@@ -133,10 +133,10 @@ footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--di
   <div class="tab-content" id="tab-overview">
     <div class="section-label">System Stats</div>
     <div class="stat-grid">
-      <div class="stat-box"><span class="num" id="statUsers">—</span><div class="lbl">Total Scans</div></div>
-      <div class="stat-box"><span class="num" id="statOrders">—</span><div class="lbl">Threats Found</div></div>
-      <div class="stat-box"><span class="num" id="statRevenue">—</span><div class="lbl">IOCs Extracted</div></div>
-      <div class="stat-box"><span class="num" id="statScans">—</span><div class="lbl">Scans Run</div></div>
+      <div class="stat-box"><span class="num" id="statUsers">-</span><div class="lbl">Total Users</div></div>
+      <div class="stat-box"><span class="num" id="statOrders">-</span><div class="lbl">Total Orders</div></div>
+      <div class="stat-box"><span class="num" id="statRevenue">-</span><div class="lbl">Revenue</div></div>
+      <div class="stat-box"><span class="num" id="statScans">-</span><div class="lbl">Total Scans</div></div>
     </div>
     <div class="section-label">Quick Actions</div>
     <div class="quick-actions">
@@ -313,10 +313,11 @@ function init() {
 function loadAdminData() {
   loadRefundRequests();
   // Stats
-  fetch('/api/stats').then(function(r){return r.json();}).then(function(d){
+  fetch('/api/admin/stats').then(function(r){return r.json();}).then(function(d){
     if(d.total_scans !== undefined) document.getElementById('statScans').textContent = d.total_scans;
-    if(d.threats !== undefined) document.getElementById('statOrders').textContent = d.threats;
-    if(d.iocs !== undefined) document.getElementById('statRevenue').textContent = d.iocs;
+    if(d.total_users !== undefined) document.getElementById('statUsers').textContent = d.total_users;
+    if(d.total_orders !== undefined) document.getElementById('statOrders').textContent = d.total_orders;
+    if(d.total_revenue !== undefined) document.getElementById('statRevenue').textContent = '$'+parseFloat(d.total_revenue).toFixed(0);
   }).catch(function(){
     // Fallback — show dashes
     ['statUsers','statOrders','statRevenue','statScans'].forEach(function(id){ document.getElementById(id).textContent = 'N/A'; });
