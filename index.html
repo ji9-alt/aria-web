@@ -576,11 +576,7 @@ function doLogin() {
     btn.disabled = false;
     if (res.status === 200 && res.data.ok) {
       var role = res.data.role;
-      if (role === 'admin' || role === 'analyst') {
-        window.location.href = '/test';
-      } else {
-        window.location.href = '/portal';
-      }
+      window.location.href = '/portal';
     } else if (res.status === 429) {
       err.textContent = 'Too many attempts. Wait 60 seconds.';
       err.style.display = 'block';

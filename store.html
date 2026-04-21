@@ -585,16 +585,47 @@ function addChatMsg(text,sender){
   div.innerHTML='<div class="bubble">'+text+'</div><div class="meta">'+( sender==='bot'?'ARIA BOT':'YOU')+'</div>';
   msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
 }
+var chatHistory = [];
 function sendChat(){
   var input=document.getElementById('chatInput');
   var text=input.value.trim();
   if(!text) return;
   input.value='';
   addChatMsg(text,'user');
-  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})})
+  chatHistory.push({role:'user',content:text});
+
+  // Typing indicator
+  var msgs=document.getElementById('chatMessages');
+  var typing=document.createElement('div');
+  typing.className='chat-msg bot'; typing.id='typing';
+  typing.innerHTML='<div class="bubble" style="color:#444;">thinking...</div>';
+  msgs.appendChild(typing); msgs.scrollTop=msgs.scrollHeight;
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:500,
+      system:'You are ARIA, an AI threat intelligence assistant for the ARIA malware analysis platform. You help with threat intel questions, malware analysis, IOC lookups, MITRE ATT&CK mapping, and cybersecurity topics. Be concise and technical. If asked about specific samples, ask for hash or file details.',
+      messages:chatHistory.slice(-6)
+    })
+  })
   .then(function(r){return r.json();})
-  .then(function(d){ addChatMsg(d.response||'Error processing request.','bot'); })
-  .catch(function(){ addChatMsg('Connection error.','bot'); });
+  .then(function(d){
+    var t=document.getElementById('typing'); if(t)t.remove();
+    var reply = d.content&&d.content[0]?d.content[0].text:'Error processing request.';
+    chatHistory.push({role:'assistant',content:reply});
+    addChatMsg(reply,'bot');
+  })
+  .catch(function(){
+    var t=document.getElementById('typing'); if(t)t.remove();
+    // Fallback to backend
+    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})})
+    .then(function(r){return r.json();})
+    .then(function(d){ addChatMsg(d.response||'I\'m having trouble connecting right now. Please try again.','bot'); })
+    .catch(function(){ addChatMsg('Connection error. Please refresh and try again.','bot'); });
+  });
 }
 
 // AUTH-AWARE NAV
