@@ -133,9 +133,9 @@ footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--di
   <div class="tab-content" id="tab-overview">
     <div class="section-label">System Stats</div>
     <div class="stat-grid">
-      <div class="stat-box"><span class="num" id="statUsers">—</span><div class="lbl">Total Users</div></div>
-      <div class="stat-box"><span class="num" id="statOrders">—</span><div class="lbl">Total Orders</div></div>
-      <div class="stat-box"><span class="num" id="statRevenue">—</span><div class="lbl">Revenue</div></div>
+      <div class="stat-box"><span class="num" id="statUsers">—</span><div class="lbl">Total Scans</div></div>
+      <div class="stat-box"><span class="num" id="statOrders">—</span><div class="lbl">Threats Found</div></div>
+      <div class="stat-box"><span class="num" id="statRevenue">—</span><div class="lbl">IOCs Extracted</div></div>
       <div class="stat-box"><span class="num" id="statScans">—</span><div class="lbl">Scans Run</div></div>
     </div>
     <div class="section-label">Quick Actions</div>
@@ -276,11 +276,10 @@ function init() {
 
 function loadAdminData() {
   // Stats
-  fetch('/api/admin/stats').then(function(r){return r.json();}).then(function(d){
-    if(d.total_users !== undefined) document.getElementById('statUsers').textContent = d.total_users;
-    if(d.total_orders !== undefined) document.getElementById('statOrders').textContent = d.total_orders;
-    if(d.total_revenue !== undefined) document.getElementById('statRevenue').textContent = '$'+parseFloat(d.total_revenue||0).toFixed(0);
+  fetch('/api/stats').then(function(r){return r.json();}).then(function(d){
     if(d.total_scans !== undefined) document.getElementById('statScans').textContent = d.total_scans;
+    if(d.threats !== undefined) document.getElementById('statOrders').textContent = d.threats;
+    if(d.iocs !== undefined) document.getElementById('statRevenue').textContent = d.iocs;
   }).catch(function(){
     // Fallback — show dashes
     ['statUsers','statOrders','statRevenue','statScans'].forEach(function(id){ document.getElementById(id).textContent = 'N/A'; });
@@ -308,7 +307,7 @@ function loadAdminData() {
   });
 
   // All orders
-  fetch('/api/admin/orders').then(function(r){return r.json();}).then(function(d){
+  fetch('/api/orders').then(function(r){return r.json();}).then(function(d){
     if(d.orders && d.orders.length > 0) {
       var html = '';
       d.orders.forEach(function(o){

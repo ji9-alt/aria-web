@@ -601,13 +601,8 @@ fetch('/api/me').then(function(r) {
   if (!d || !d.authenticated) return;
   var btn = document.getElementById('navAuth');
   var role = d.role;
-  if (role === 'admin' || role === 'analyst') {
-    btn.textContent = 'PLATFORM';
-    btn.onclick = function(e) { e.preventDefault(); window.location.href = '/test'; };
-  } else {
-    btn.textContent = 'MY ACCOUNT';
-    btn.onclick = function(e) { e.preventDefault(); window.location.href = '/portal'; };
-  }
+  btn.textContent = 'MY ACCOUNT';
+  btn.onclick = function(e) { e.preventDefault(); window.location.href = '/portal'; };
   var nav = document.querySelector('.nav-links');
   var signout = document.createElement('a');
   signout.href = '#';
