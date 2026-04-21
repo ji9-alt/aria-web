@@ -2652,7 +2652,7 @@ def api_admin_user_action():
         import db
         if action == "ban":
             db.query("UPDATE users SET banned=1 WHERE id=%s", (user_id,), fetch=False)
-            db.query("DELETE FROM sessions WHERE user_id=%s", (user_id,), fetch=False)
+            pass  # sessions are in-memory
             return jsonify({"ok": True})
         elif action == "reset":
             import secrets as _sec
