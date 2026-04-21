@@ -2780,3 +2780,32 @@ if __name__ == "__main__":
 
 
 
+
+@app.route("/api/admin/user-action", methods=["POST"])
+@require_admin
+def api_admin_user_action():
+    data = request.get_json(force=True)
+    action = data.get("action")
+    user_id = data.get("user_id")
+    username = data.get("username", "")
+    if not action or not user_id:
+        return jsonify({"error": "Missing action or user_id"}), 400
+    try:
+        import db
+        if action == "ban":
+            db.query("UPDATE users SET banned=1 WHERE id=?", (user_id,), fetch=False)
+            db.query("DELETE FROM sessions WHERE user_id=?", (user_id,), fetch=False)
+            return jsonify({"ok": True, "message": f"User {username} banned"})
+        elif action == "reset":
+            import secrets
+            temp_pw = secrets.token_urlsafe(10)
+            hashed = db.hash_password(temp_pw)
+            db.query("UPDATE users SET password_hash=? WHERE id=?", (hashed, user_id), fetch=False)
+            return jsonify({"ok": True, "temp_password": temp_pw, "message": f"Password reset for {username}"})
+        elif action == "refund":
+            db.query("UPDATE orders SET status='refunded' WHERE user_id=?", (user_id,), fetch=False)
+            return jsonify({"ok": True, "message": f"All orders refunded for {username}"})
+        else:
+            return jsonify({"error": "Unknown action"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
