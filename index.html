@@ -4,216 +4,512 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARIA - Automated Response & Intelligence Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  :root {
+    --red: #cc0000;
+    --red-dim: rgba(204,0,0,0.15);
+    --red-glow: rgba(204,0,0,0.3);
+    --bg: #080808;
+    --bg2: #0f0f0f;
+    --bg3: #141414;
+    --border: #1e1e1e;
+    --text: #e0e0e0;
+    --muted: #555;
+    --dim: #333;
+  }
+  html { scroll-behavior: smooth; }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    background:#0a0a0a;
-    color:#e0e0e0;
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events:none;
+    z-index:9999;
   }
 
   /* Nav */
   nav {
     display:flex; justify-content:space-between; align-items:center;
-    padding:20px 48px;
-    border-bottom:1px solid #1a1a1a;
+    padding: 18px 48px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top:0; z-index:100;
+    background: rgba(8,8,8,0.95);
+    backdrop-filter: blur(10px);
   }
-  .nav-brand { display:flex; align-items:center; gap:12px; }
+  .nav-brand { display:flex; align-items:center; gap:12px; text-decoration:none; }
   .nav-logo {
-    font-size:24px; font-weight:900; letter-spacing:6px; color:#cc0000;
-    text-shadow:0 0 20px rgba(204,0,0,0.3);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px; font-weight: 700; letter-spacing: 8px; color: var(--red);
+    text-shadow: 0 0 30px var(--red-glow), 0 0 60px rgba(204,0,0,0.1);
   }
-  .nav-tag { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; }
+  .nav-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+  }
   .nav-links { display:flex; gap:32px; align-items:center; }
   .nav-links a {
-    color:#666; font-size:13px; text-decoration:none; letter-spacing:1px;
-    transition:color 0.2s;
+    color: var(--muted); font-size: 12px; text-decoration: none;
+    letter-spacing: 2px; text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: color 0.2s;
   }
-  .nav-links a:hover { color:#cc0000; }
+  .nav-links a:hover { color: var(--red); }
   .nav-btn {
-    background:#cc0000; color:white; border:none; padding:8px 20px;
-    font-size:12px; letter-spacing:2px; cursor:pointer; text-decoration:none;
-    font-family:'Inter',sans-serif; font-weight:600; transition:background 0.2s;
+    background: var(--red); color: white; border: none; padding: 9px 22px;
+    font-size: 11px; letter-spacing: 3px; cursor: pointer; text-decoration: none;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
   }
-  .nav-btn:hover { background:#aa0000; }
+  .nav-btn::after {
+    content:''; position:absolute; inset:0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+  .nav-btn:hover::after { transform: translateX(0); }
 
   /* Hero */
   .hero {
     flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;
-    text-align:center; padding:80px 48px;
-    background:radial-gradient(ellipse at center, rgba(204,0,0,0.03) 0%, transparent 70%);
+    text-align:center; padding: 100px 48px 80px;
+    position: relative;
+    overflow: hidden;
   }
+  .hero::before {
+    content:'';
+    position: absolute; inset:0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(204,0,0,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 20% 80%, rgba(204,0,0,0.03) 0%, transparent 60%);
+  }
+  .hero-grid {
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.4;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 80%);
+  }
+  .hero > * { position: relative; z-index:1; }
+
   .hero-badge {
-    font-size:10px; letter-spacing:4px; color:#cc0000; text-transform:uppercase;
-    border:1px solid rgba(204,0,0,0.3); padding:6px 16px; margin-bottom:32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 5px; color: var(--red); text-transform: uppercase;
+    border: 1px solid rgba(204,0,0,0.4); padding: 7px 20px; margin-bottom: 36px;
+    background: rgba(204,0,0,0.05);
+    animation: fadeIn 0.6s ease both;
   }
   .hero h1 {
-    font-size:56px; font-weight:900; letter-spacing:2px; color:#fff;
-    line-height:1.1; margin-bottom:16px;
+    font-size: 64px; font-weight: 700; letter-spacing: -1px; color: #fff;
+    line-height: 1.05; margin-bottom: 20px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    animation: slideUp 0.7s ease both 0.1s;
   }
-  .hero h1 span { color:#cc0000; }
+  .hero h1 span { color: var(--red); }
+  .hero h1 .accent {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+  }
   .hero p {
-    font-size:16px; color:#666; max-width:560px; line-height:1.7; margin-bottom:48px;
+    font-size: 15px; color: #666; max-width: 520px; line-height: 1.8;
+    margin-bottom: 52px;
+    animation: slideUp 0.7s ease both 0.2s;
   }
-  .hero-actions { display:flex; gap:16px; }
+  .hero-actions {
+    display:flex; gap:16px;
+    animation: slideUp 0.7s ease both 0.3s;
+  }
   .btn-primary {
-    background:#cc0000; color:white; border:none; padding:14px 36px;
-    font-size:14px; letter-spacing:2px; cursor:pointer; text-decoration:none;
-    font-family:'Inter',sans-serif; font-weight:600; transition:all 0.2s;
+    background: var(--red); color: white; border: none; padding: 15px 40px;
+    font-size: 12px; letter-spacing: 3px; cursor: pointer; text-decoration: none;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; text-transform: uppercase;
+    transition: all 0.25s;
+    box-shadow: 0 0 0 rgba(204,0,0,0);
   }
-  .btn-primary:hover { background:#ee1111; box-shadow:0 0 30px rgba(204,0,0,0.3); }
+  .btn-primary:hover {
+    background: #ee1111;
+    box-shadow: 0 0 40px rgba(204,0,0,0.4), 0 4px 20px rgba(0,0,0,0.4);
+    transform: translateY(-1px);
+  }
   .btn-outline {
-    background:transparent; color:#888; border:1px solid #333; padding:14px 36px;
-    font-size:14px; letter-spacing:2px; cursor:pointer; text-decoration:none;
-    font-family:'Inter',sans-serif; font-weight:600; transition:all 0.2s;
+    background: transparent; color: #777; border: 1px solid var(--dim);
+    padding: 15px 40px; font-size: 12px; letter-spacing: 3px; cursor: pointer;
+    text-decoration: none; font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600; text-transform: uppercase; transition: all 0.25s;
   }
-  .btn-outline:hover { border-color:#cc0000; color:#cc0000; }
+  .btn-outline:hover { border-color: var(--red); color: var(--red); }
+
+  /* Terminal ticker */
+  .ticker {
+    width: 100%; background: var(--bg2); border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border); padding: 10px 0; overflow: hidden;
+    position: relative;
+  }
+  .ticker-inner {
+    display: flex; gap: 64px;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+  }
+  .ticker-item {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--muted); letter-spacing: 2px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ticker-item .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
   /* Features */
+  .features-section { padding: 80px 48px; }
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 5px; color: var(--red);
+    text-transform: uppercase; margin-bottom: 48px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-label::after {
+    content:''; flex:1; height:1px; background: var(--border);
+  }
   .features {
-    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
-    background:#1a1a1a; border-top:1px solid #1a1a1a;
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 1px;
+    background: var(--border);
   }
   .feature {
-    background:#0a0a0a; padding:40px 32px; text-align:center;
-    transition:background 0.2s;
+    background: var(--bg); padding: 36px 28px;
+    transition: background 0.25s;
+    cursor: pointer; position: relative; overflow: hidden;
   }
-  .feature:hover { background:#111; }
-  .feature-icon { font-size:28px; margin-bottom:16px; }
+  .feature::before {
+    content:''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--red);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .feature:hover::before { transform: scaleX(1); }
+  .feature:hover { background: var(--bg2); }
+  .feature-icon {
+    font-size: 24px; margin-bottom: 20px;
+    display: block;
+  }
   .feature h3 {
-    font-size:11px; letter-spacing:3px; text-transform:uppercase;
-    color:#cc0000; margin-bottom:8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--red); margin-bottom: 12px;
   }
-  .feature p { font-size:12px; color:#555; line-height:1.6; }
+  .feature p { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  .feature-detail {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--dim); letter-spacing: 1px;
+    line-height: 1.8;
+  }
+
+  /* Threat Intel Section */
+  .intel-section { padding: 80px 48px; background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .intel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  .intel-content h2 {
+    font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 20px; line-height: 1.2;
+  }
+  .intel-content h2 span { color: var(--red); }
+  .intel-content p { font-size: 13px; color: #666; line-height: 1.9; margin-bottom: 24px; }
+  .intel-list { list-style: none; }
+  .intel-list li {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--muted); padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; letter-spacing: 1px;
+  }
+  .intel-list li::before { content: '→'; color: var(--red); }
+  .intel-terminal {
+    background: var(--bg3); border: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    padding: 24px; line-height: 2;
+  }
+  .terminal-bar {
+    display: flex; gap: 8px; margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .t-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .t-dot.r { background: #ff5f56; }
+  .t-dot.y { background: #ffbd2e; }
+  .t-dot.g { background: #27c93f; }
+  .terminal-line { color: var(--muted); }
+  .terminal-line .prompt { color: var(--red); }
+  .terminal-line .ok { color: #27c93f; }
+  .terminal-line .warn { color: #ffbd2e; }
+  .terminal-line .val { color: #e0e0e0; }
 
   /* Stats */
   .stats {
-    display:flex; justify-content:center; gap:64px; padding:48px;
-    border-top:1px solid #1a1a1a;
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 1px;
+    background: var(--border); border-top: 1px solid var(--border);
   }
-  .stat { text-align:center; }
-  .stat-num { font-size:36px; font-weight:900; color:#cc0000; }
-  .stat-label { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+  .stat {
+    background: var(--bg); text-align: center; padding: 48px 24px;
+    transition: background 0.2s;
+  }
+  .stat:hover { background: var(--bg2); }
+  .stat-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 42px; font-weight: 700; color: var(--red);
+    display: block; margin-bottom: 8px;
+    text-shadow: 0 0 30px var(--red-glow);
+  }
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase;
+  }
 
   /* Footer */
   footer {
-    padding:24px 48px; border-top:1px solid #1a1a1a;
-    display:flex; justify-content:space-between; align-items:center;
+    padding: 20px 48px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
   }
-  footer p { font-size:11px; color:#333; letter-spacing:1px; }
+  footer p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--dim); letter-spacing: 2px;
+  }
   .footer-status { display:flex; align-items:center; gap:8px; }
   .status-dot {
-    width:6px; height:6px; border-radius:50%; background:#00cc44;
-    box-shadow:0 0 8px rgba(0,204,68,0.5);
-    animation:pulse 2s ease-in-out infinite;
+    width: 6px; height: 6px; border-radius: 50%; background: #27c93f;
+    box-shadow: 0 0 8px rgba(39,201,63,0.6);
+    animation: pulse 2s ease-in-out infinite;
   }
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-  .status-text { font-size:11px; color:#444; letter-spacing:1px; }
+  .status-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--dim); letter-spacing: 2px;
+  }
 
   /* Login Modal */
   .modal-overlay {
     display:none; position:fixed; inset:0;
-    background:rgba(0,0,0,0.85); z-index:1000;
+    background: rgba(0,0,0,0.9); z-index:1000;
     justify-content:center; align-items:center;
+    backdrop-filter: blur(4px);
   }
   .modal-overlay.active { display:flex; }
   .modal {
-    background:#111; border:1px solid #222; padding:48px; width:380px;
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 48px; width: 400px; position: relative;
+    box-shadow: 0 0 80px rgba(0,0,0,0.8), 0 0 40px rgba(204,0,0,0.05);
+    animation: modalIn 0.2s ease both;
   }
-  .modal h2 {
-    font-size:12px; letter-spacing:4px; text-transform:uppercase;
-    color:#cc0000; margin-bottom:32px; text-align:center;
+  @keyframes modalIn { from { opacity:0; transform: translateY(-10px) scale(0.98); } to { opacity:1; transform: none; } }
+  .modal-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 5px; text-transform: uppercase;
+    color: var(--red); margin-bottom: 32px; text-align: center;
   }
   .modal input {
-    width:100%; background:#0a0a0a; border:1px solid #222; color:#e0e0e0;
-    padding:12px 16px; font-size:13px; font-family:'Inter',sans-serif;
-    margin-bottom:16px; outline:none; transition:border-color 0.2s;
+    width:100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 13px 16px;
+    font-size: 13px; font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 12px; outline: none; transition: border-color 0.2s;
+    letter-spacing: 1px;
   }
-  .modal input:focus { border-color:#cc0000; }
-  .modal button {
-    width:100%; background:#cc0000; color:white; border:none; padding:14px;
-    font-size:13px; letter-spacing:2px; cursor:pointer;
-    font-family:'Inter',sans-serif; font-weight:600; transition:background 0.2s;
+  .modal input:focus { border-color: var(--red); }
+  .modal input::placeholder { color: var(--dim); }
+  .modal-submit {
+    width:100%; background: var(--red); color: white; border: none; padding: 14px;
+    font-size: 11px; letter-spacing: 3px; cursor: pointer; text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+    transition: background 0.2s; margin-top: 8px;
   }
-  .modal button:hover { background:#ee1111; }
-  .modal .error { color:#cc0000; font-size:11px; margin-bottom:12px; display:none; text-align:center; }
-  .modal .close {
-    position:absolute; top:16px; right:20px; color:#555; cursor:pointer;
-    font-size:18px; background:none; border:none; width:auto; letter-spacing:0;
+  .modal-submit:hover { background: #ee1111; }
+  .modal-error {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--red); font-size: 11px; margin-bottom: 12px;
+    display: none; text-align: center; letter-spacing: 1px;
   }
-  .modal .close:hover { color:#cc0000; }
-  .modal-inner { position:relative; }
+  .modal-close {
+    position: absolute; top: 16px; right: 20px; color: var(--muted); cursor: pointer;
+    font-size: 18px; background: none; border: none; letter-spacing: 0;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--red); }
+  .modal-footer-text {
+    font-size: 11px; color: var(--muted); text-align: center; margin-top: 16px;
+  }
+  .modal-footer-text a { color: var(--red); text-decoration: none; }
+
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: none; } }
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="nav-brand">
+  <a class="nav-brand" href="/">
     <div>
       <div class="nav-logo">ARIA</div>
       <div class="nav-tag">Automated Response & Intelligence Agent</div>
     </div>
-  </div>
+  </a>
   <div class="nav-links">
     <a href="#features">Features</a>
+    <a href="#threat-intel">Threat Intel</a>
     <a href="/store">Store</a>
-    <a href="#stats">Threat Intel</a>
-    <a class="nav-btn" href="#" onclick="openLogin()" id="navAuth">SIGN IN</a>
+    <a class="nav-btn" href="#" onclick="openLogin(event)" id="navAuth">SIGN IN</a>
   </div>
 </nav>
 
+<!-- Hero -->
 <section class="hero">
-  <div class="hero-badge">Enterprise Malware Analysis Platform</div>
-  <h1>Analyze threats.<br><span>Protect everything.</span></h1>
+  <div class="hero-grid"></div>
+  <div class="hero-badge">// Enterprise Malware Analysis Platform</div>
+  <h1>Analyze threats.<br><span>Protect</span> <span class="accent">everything.</span></h1>
   <p>Upload suspicious files for instant static analysis, AI-powered threat intelligence, YARA signature matching, and automated PDF reporting.</p>
   <div class="hero-actions">
-    <a class="btn-primary" href="#" onclick="openLogin()">START ANALYSIS</a>
-    <a class="btn-outline" href="#features">LEARN MORE</a>
+    <a class="btn-primary" href="#" onclick="openLogin(event)">START ANALYSIS</a>
+    <a class="btn-outline" href="#" onclick="openLearnMore(event)">LEARN MORE</a>
   </div>
 </section>
 
-<section class="features" id="features">
-  <div class="feature">
-    <div class="feature-icon">&#x1f50d;</div>
-    <h3>Static Analysis</h3>
-    <p>PE header parsing, import analysis, section entropy, overlay detection, authenticode verification</p>
+<!-- Ticker -->
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner">
+    <span class="ticker-item"><span class="dot"></span>PE HEADER ANALYSIS</span>
+    <span class="ticker-item"><span class="dot"></span>YARA SIGNATURE MATCHING</span>
+    <span class="ticker-item"><span class="dot"></span>AI THREAT CLASSIFICATION</span>
+    <span class="ticker-item"><span class="dot"></span>MITRE ATT&CK MAPPING</span>
+    <span class="ticker-item"><span class="dot"></span>IOC EXTRACTION</span>
+    <span class="ticker-item"><span class="dot"></span>ENTROPY ANALYSIS</span>
+    <span class="ticker-item"><span class="dot"></span>CAPA CAPABILITY DETECTION</span>
+    <span class="ticker-item"><span class="dot"></span>PDF REPORT GENERATION</span>
+    <span class="ticker-item"><span class="dot"></span>VIRUSTOTAL ENRICHMENT</span>
+    <span class="ticker-item"><span class="dot"></span>GHIDRA DECOMPILATION</span>
+    <!-- duplicate for loop -->
+    <span class="ticker-item"><span class="dot"></span>PE HEADER ANALYSIS</span>
+    <span class="ticker-item"><span class="dot"></span>YARA SIGNATURE MATCHING</span>
+    <span class="ticker-item"><span class="dot"></span>AI THREAT CLASSIFICATION</span>
+    <span class="ticker-item"><span class="dot"></span>MITRE ATT&CK MAPPING</span>
+    <span class="ticker-item"><span class="dot"></span>IOC EXTRACTION</span>
+    <span class="ticker-item"><span class="dot"></span>ENTROPY ANALYSIS</span>
+    <span class="ticker-item"><span class="dot"></span>CAPA CAPABILITY DETECTION</span>
+    <span class="ticker-item"><span class="dot"></span>PDF REPORT GENERATION</span>
+    <span class="ticker-item"><span class="dot"></span>VIRUSTOTAL ENRICHMENT</span>
+    <span class="ticker-item"><span class="dot"></span>GHIDRA DECOMPILATION</span>
   </div>
-  <div class="feature">
-    <div class="feature-icon">&#x1f9e0;</div>
-    <h3>AI Intelligence</h3>
-    <p>AI-powered threat assessment with MITRE ATT&CK mapping and behavioral classification</p>
-  </div>
-  <div class="feature">
-    <div class="feature-icon">&#x1f6e1;</div>
-    <h3>YARA + CAPA</h3>
-    <p>Custom YARA signatures and CAPA capability detection for known malware families</p>
-  </div>
-  <div class="feature">
-    <div class="feature-icon">&#x1f4c4;</div>
-    <h3>PDF Reports</h3>
-    <p>Professional threat intelligence reports with confidence scoring and IOC extraction</p>
+</div>
+
+<!-- Features -->
+<section class="features-section" id="features">
+  <div class="section-label">Core Capabilities</div>
+  <div class="features">
+    <div class="feature" onclick="openFeature('static')">
+      <span class="feature-icon">🔍</span>
+      <h3>Static Analysis</h3>
+      <p>Deep PE inspection with section entropy, overlay detection, import table analysis, and authenticode verification.</p>
+      <div class="feature-detail">
+        › PE Headers<br>
+        › Rich Header<br>
+        › TLS Callbacks<br>
+        › Authenticode
+      </div>
+    </div>
+    <div class="feature" onclick="openFeature('ai')">
+      <span class="feature-icon">🧠</span>
+      <h3>AI Intelligence</h3>
+      <p>ARIA LLM threat assessment with MITRE ATT&CK mapping, behavioral classification, and confidence scoring.</p>
+      <div class="feature-detail">
+        › Threat Verdict<br>
+        › ATT&CK Mapping<br>
+        › Confidence Score<br>
+        › IOC Extraction
+      </div>
+    </div>
+    <div class="feature" onclick="openFeature('yara')">
+      <span class="feature-icon">🛡️</span>
+      <h3>YARA + CAPA</h3>
+      <p>Custom YARA signatures and CAPA capability detection covering 1,200+ malware behaviors and known families.</p>
+      <div class="feature-detail">
+        › Custom Rules<br>
+        › Family Detection<br>
+        › APT Signatures<br>
+        › CAPA Behaviors
+      </div>
+    </div>
+    <div class="feature" onclick="openFeature('reports')">
+      <span class="feature-icon">📄</span>
+      <h3>PDF Reports</h3>
+      <p>Professional threat intelligence reports with radar charts, IOC tables, and executive-ready formatting.</p>
+      <div class="feature-detail">
+        › Radar Charts<br>
+        › IOC Tables<br>
+        › MITRE Mapping<br>
+        › Executive Summary
+      </div>
+    </div>
   </div>
 </section>
 
+<!-- Threat Intel Section -->
+<section class="intel-section" id="threat-intel">
+  <div class="intel-grid">
+    <div class="intel-content">
+      <div class="section-label">Threat Intelligence</div>
+      <h2>Real analysis.<br><span>Real results.</span></h2>
+      <p>ARIA combines static PE analysis, Ghidra decompilation, FLOSS string extraction, and AI classification into a single automated pipeline. Every scan produces actionable intelligence.</p>
+      <ul class="intel-list">
+        <li>Multi-engine analysis pipeline (PE → Ghidra → YARA → AI)</li>
+        <li>VirusTotal enrichment with community detection rates</li>
+        <li>FLOSS string categorization (network, crypto, injection)</li>
+        <li>DIE packer/protector detection</li>
+        <li>Full SSDEEP fuzzy hashing for variant tracking</li>
+        <li>Automated IOC extraction and deduplication</li>
+      </ul>
+    </div>
+    <div class="intel-terminal">
+      <div class="terminal-bar">
+        <div class="t-dot r"></div>
+        <div class="t-dot y"></div>
+        <div class="t-dot g"></div>
+      </div>
+      <div class="terminal-line"><span class="prompt">aria@sandbox:~$</span> analyze sample.exe</div>
+      <div class="terminal-line" style="color:#444;">Initiating analysis pipeline...</div>
+      <div class="terminal-line"><span class="ok">✓</span> PE analysis complete</div>
+      <div class="terminal-line"><span class="ok">✓</span> <span class="val">4</span> YARA rules matched</div>
+      <div class="terminal-line"><span class="ok">✓</span> Ghidra: <span class="val">7,229</span> functions</div>
+      <div class="terminal-line"><span class="warn">!</span> <span class="val">30</span> malicious symbols</div>
+      <div class="terminal-line"><span class="ok">✓</span> VT: <span class="val">19/76</span> detections</div>
+      <div class="terminal-line"><span class="ok">✓</span> FLOSS: <span class="val">847</span> strings</div>
+      <div class="terminal-line" style="color:#444;">Generating ARIA report...</div>
+      <div class="terminal-line"><span class="prompt">VERDICT:</span> <span style="color:#cc0000;font-weight:600;">MALICIOUS</span> [95/100]</div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
 <div class="stats" id="stats">
   <div class="stat">
-    <div class="stat-num">47</div>
+    <span class="stat-num" id="statYara">47</span>
     <div class="stat-label">YARA Rules Active</div>
   </div>
   <div class="stat">
-    <div class="stat-num">1,200+</div>
+    <span class="stat-num">1,200+</span>
     <div class="stat-label">CAPA Capabilities</div>
   </div>
   <div class="stat">
-    <div class="stat-num">100%</div>
+    <span class="stat-num">100%</span>
     <div class="stat-label">Offline Capable</div>
   </div>
   <div class="stat">
-    <div class="stat-num">&lt;5s</div>
+    <span class="stat-num">&lt;5s</span>
     <div class="stat-label">Avg Analysis Time</div>
   </div>
 </div>
@@ -229,19 +525,21 @@
 <!-- Login Modal -->
 <div class="modal-overlay" id="loginModal">
   <div class="modal">
-    <div class="modal-inner">
-      <button class="close" onclick="closeLogin()">&times;</button>
-      <h2>Authenticate</h2>
-      <div class="error" id="loginError">Invalid credentials</div>
-      <input type="text" id="username" placeholder="Username" autocomplete="off">
-      <input type="password" id="password" placeholder="Password">
-      <button onclick="doLogin()">ACCESS PLATFORM</button>
+    <button class="modal-close" onclick="closeLogin()">&times;</button>
+    <div class="modal-header">// Authenticate</div>
+    <div class="modal-error" id="loginError">Invalid credentials</div>
+    <input type="text" id="username" placeholder="Username" autocomplete="off">
+    <input type="password" id="password" placeholder="Password">
+    <button class="modal-submit" onclick="doLogin()">ACCESS PLATFORM</button>
+    <div class="modal-footer-text">
+      No account? <a href="/store" onclick="closeLogin()">Purchase access</a>
     </div>
   </div>
 </div>
 
 <script>
-function openLogin() {
+function openLogin(e) {
+  if (e) e.preventDefault();
   document.getElementById('loginModal').classList.add('active');
   document.getElementById('username').focus();
 }
@@ -254,11 +552,18 @@ document.getElementById('loginModal').addEventListener('click', function(e) {
 document.getElementById('password').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doLogin();
 });
+document.getElementById('username').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('password').focus();
+});
 
 function doLogin() {
   var user = document.getElementById('username').value.trim();
   var pass = document.getElementById('password').value;
   var err = document.getElementById('loginError');
+  var btn = document.querySelector('.modal-submit');
+  err.style.display = 'none';
+  btn.textContent = 'AUTHENTICATING...';
+  btn.disabled = true;
 
   fetch('/api/login', {
     method: 'POST',
@@ -267,6 +572,8 @@ function doLogin() {
   })
   .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
   .then(function(res) {
+    btn.textContent = 'ACCESS PLATFORM';
+    btn.disabled = false;
     if (res.status === 200 && res.data.ok) {
       var role = res.data.role;
       if (role === 'admin' || role === 'analyst') {
@@ -284,46 +591,142 @@ function doLogin() {
     }
   })
   .catch(function() {
+    btn.textContent = 'ACCESS PLATFORM';
+    btn.disabled = false;
     err.textContent = 'Connection error';
     err.style.display = 'block';
   });
 }
 
-// Check if already logged in via server
+// Auth-aware nav
 fetch('/api/me').then(function(r) {
-  if (r.ok) {
-    return r.json().then(function(d) {
-      if (!d.authenticated) return;
-      var btn = document.getElementById('navAuth');
-      var role = d.role;
-      if (role === 'admin' || role === 'analyst') {
-        btn.textContent = 'GO TO PLATFORM';
-        btn.onclick = function(e) { e.preventDefault(); window.location.href = '/test'; };
-      } else {
-        btn.textContent = 'MY ACCOUNT';
-        btn.onclick = function(e) { e.preventDefault(); window.location.href = '/portal'; };
-      }
-      // Add sign out link
-      var nav = document.querySelector('.nav-links');
-      var signout = document.createElement('a');
-      signout.href = '#';
-      signout.textContent = 'Sign Out';
-      signout.style.color = '#555';
-      signout.onclick = function(e) {
-        e.preventDefault();
-        fetch('/api/logout', {method:'POST'}).then(function() { window.location.reload(); });
-      };
-      nav.insertBefore(signout, btn);
-    });
+  if (r.ok) return r.json();
+}).then(function(d) {
+  if (!d || !d.authenticated) return;
+  var btn = document.getElementById('navAuth');
+  var role = d.role;
+  if (role === 'admin' || role === 'analyst') {
+    btn.textContent = 'PLATFORM';
+    btn.onclick = function(e) { e.preventDefault(); window.location.href = '/test'; };
+  } else {
+    btn.textContent = 'MY ACCOUNT';
+    btn.onclick = function(e) { e.preventDefault(); window.location.href = '/portal'; };
   }
+  var nav = document.querySelector('.nav-links');
+  var signout = document.createElement('a');
+  signout.href = '#';
+  signout.textContent = 'Sign Out';
+  signout.onclick = function(e) {
+    e.preventDefault();
+    fetch('/api/logout', {method:'POST'}).then(function() { window.location.reload(); });
+  };
+  nav.insertBefore(signout, btn);
 }).catch(function() {});
+</script>
 
-// Load live stats
-fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
-  var nums = document.querySelectorAll('.stat-num');
-  if (d.total_scans !== undefined) nums[0].textContent = d.total_scans || '0';
-  if (d.threats !== undefined) nums[1].textContent = d.threats || '0';
-}).catch(function() {});
+<!-- Learn More Modal -->
+<div class="modal-overlay" id="learnMoreModal">
+  <div class="modal" style="width:580px;">
+    <button class="modal-close" onclick="document.getElementById('learnMoreModal').classList.remove('active')">&times;</button>
+    <div class="modal-header">// About ARIA Platform</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;line-height:2;margin-bottom:20px;letter-spacing:1px;">
+      ARIA is an enterprise-grade malware analysis platform built on the OpenClaw engine. It combines multiple analysis tools into a single automated pipeline.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1e1e1e;margin-bottom:20px;">
+      <div style="background:#0f0f0f;padding:20px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#cc0000;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Analysis Stack</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;line-height:2;">
+          › pefile (PE parsing)<br>
+          › Ghidra 11 (decompilation)<br>
+          › FLOSS (string extraction)<br>
+          › CAPA (capability detection)<br>
+          › YARA (signature matching)<br>
+          › DIE (packer detection)
+        </div>
+      </div>
+      <div style="background:#0f0f0f;padding:20px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#cc0000;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Enrichment</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;line-height:2;">
+          › VirusTotal API<br>
+          › MITRE ATT&CK mapping<br>
+          › IOC extraction<br>
+          › SSDEEP fuzzy hashing<br>
+          › Confidence scoring<br>
+          › PDF report generation
+        </div>
+      </div>
+    </div>
+    <button class="modal-submit" onclick="document.getElementById('learnMoreModal').classList.remove('active');openLogin(event)">ACCESS PLATFORM</button>
+  </div>
+</div>
+
+<!-- Feature Detail Modal -->
+<div class="modal-overlay" id="featureModal">
+  <div class="modal" style="width:520px;">
+    <button class="modal-close" onclick="document.getElementById('featureModal').classList.remove('active')">&times;</button>
+    <div class="modal-header" id="featureModalTitle">// Feature</div>
+    <div id="featureModalBody" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;line-height:2;"></div>
+    <button class="modal-submit" style="margin-top:20px;" onclick="document.getElementById('featureModal').classList.remove('active');openLogin(event)">TRY IT NOW</button>
+  </div>
+</div>
+
+<script>
+var featureData = {
+  static: {
+    title: '// Static Analysis Engine',
+    body: '<div style="margin-bottom:16px;color:#e0e0e0;font-size:12px;line-height:1.8;">Deep PE structure inspection without execution. Safe for unknown samples.</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">PE Structure</div>DOS/NT headers · Section table · Import/Export tables · Rich Header · Debug info</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Security Checks</div>Overlay detection · Entropy scoring · Authenticode · TLS callbacks · Packer ID</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Hashing</div>MD5 · SHA1 · SHA256 · SSDEEP · ImpHash</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">String Analysis</div>FLOSS static/dynamic strings · Network IOCs · Crypto patterns</div>'
+      + '</div>'
+  },
+  ai: {
+    title: '// ARIA AI Intelligence',
+    body: '<div style="margin-bottom:16px;color:#e0e0e0;font-size:12px;line-height:1.8;">ARIA LLM synthesizes all analysis layers into a structured threat verdict.</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Verdict Output</div>BENIGN · SUSPICIOUS · MALICIOUS · UNKNOWN with confidence score 0-100</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">ATT&CK Mapping</div>Tactics · Techniques · Sub-techniques mapped from behavioral indicators</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">IOC Extraction</div>C2 domains · IPs · Registry keys · File paths · Mutex names</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Classification</div>Malware family · Threat actor TTPs · Severity rating</div>'
+      + '</div>'
+  },
+  yara: {
+    title: '// YARA + CAPA Detection',
+    body: '<div style="margin-bottom:16px;color:#e0e0e0;font-size:12px;line-height:1.8;">Multi-engine signature and capability detection covering known malware families.</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">YARA Rules</div>47+ custom signatures · Ransomware families · RATs · Stealers · APT toolkits</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">CAPA Capabilities</div>1,200+ behaviors · Anti-analysis · Persistence · Lateral movement · Exfil</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Ghidra Analysis</div>Symbol detection · Malicious function naming · 7,000+ function analysis</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">DIE Detection</div>Packer identification · Protector detection · Compiler fingerprinting</div>'
+      + '</div>'
+  },
+  reports: {
+    title: '// PDF Report Generation',
+    body: '<div style="margin-bottom:16px;color:#e0e0e0;font-size:12px;line-height:1.8;">Professional threat intelligence reports ready for executive briefings and incident response.</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Report Sections</div>Executive summary · Confidence radar · PE details · YARA hits · IOC tables</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Visualizations</div>Radar chart · Section entropy bar · Import density · Timeline</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">MITRE Pages</div>Full ATT&CK matrix with highlighted techniques · TTP breakdown</div>'
+      + '<div><div style="color:#cc0000;margin-bottom:8px;">Formats</div>14-page PDF · High-DPI 300dpi · ReportLab rendered · Instant download</div>'
+      + '</div>'
+  }
+};
+
+function openLearnMore(e) {
+  if(e) e.preventDefault();
+  document.getElementById('learnMoreModal').classList.add('active');
+}
+function openFeature(key) {
+  var data = featureData[key];
+  if(!data) return;
+  document.getElementById('featureModalTitle').textContent = data.title;
+  document.getElementById('featureModalBody').innerHTML = data.body;
+  document.getElementById('featureModal').classList.add('active');
+}
+document.getElementById('learnMoreModal').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('active'); });
+document.getElementById('featureModal').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('active'); });
 </script>
 
 </body>
