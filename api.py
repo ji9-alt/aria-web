@@ -2652,7 +2652,7 @@ def api_admin_user_action():
         import db
         if action == "ban":
             db.query("UPDATE users SET banned=1 WHERE id=%s", (user_id,), fetch=False)
-            db.query("DELETE FROM sessions WHERE user_id=?", (user_id,), fetch=False)
+            db.query("DELETE FROM sessions WHERE user_id=%s", (user_id,), fetch=False)
             return jsonify({"ok": True})
         elif action == "reset":
             import secrets as _sec
@@ -2660,10 +2660,10 @@ def api_admin_user_action():
             db.query("UPDATE users SET password_hash=%s WHERE id=%s", (db.hash_password(tmp), user_id), fetch=False)
             return jsonify({"ok": True, "temp_password": tmp})
         elif action == "refund":
-            db.query("UPDATE orders SET status='refunded' WHERE user_id=?", (user_id,), fetch=False)
+            db.query("UPDATE orders SET status='refunded' WHERE user_id=%s", (user_id,), fetch=False)
             return jsonify({"ok": True})
         elif action == "refund_order":
-            db.query("UPDATE orders SET status='refunded' WHERE order_id=?", (order_id,), fetch=False)
+            db.query("UPDATE orders SET status='refunded' WHERE order_id=%s", (order_id,), fetch=False)
             return jsonify({"ok": True})
         else:
             return jsonify({"error": "Unknown action"}), 400
