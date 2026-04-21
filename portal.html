@@ -300,7 +300,7 @@ function loadAdminData() {
           +'<td><span class="badge '+(isAdmin?'badge-red':u.role==='analyst'?'badge-yellow':'badge-green')+'">'+u.role+'</span></td>'
           +'<td style="color:var(--muted);font-family:IBM Plex Mono,monospace;font-size:11px;">'+(u.created_at?new Date(u.created_at).toLocaleDateString():'—')+'</td>'
           +'<td style="white-space:nowrap;">'
-          +(!isAdmin?'<button class="usr-action-btn" data-action="ban" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(204,0,0,0.15);border:1px solid rgba(204,0,0,0.5);color:#cc0000;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">BAN</button>':'')
+          +(!isAdmin?'<button class="usr-action-btn" data-action="ban" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(204,0,0,0.15);border:1px solid rgba(204,0,0,0.5);color:#cc0000;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">BAN</button><button class="usr-action-btn" data-action="unban" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(0,150,0,0.15);border:1px solid rgba(0,150,0,0.4);color:#00cc44;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">UNBAN</button>':'')
           +'<button class="usr-action-btn" data-action="reset" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(80,80,80,0.2);border:1px solid #444;color:#aaa;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;margin-right:4px;">RESET PW</button>'
           +(!isAdmin?'<button class="usr-action-btn" data-action="refund" data-uid="'+uid+'" data-uname="'+uname+'" style="background:rgba(0,100,200,0.15);border:1px solid rgba(0,100,200,0.4);color:#4488ff;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;">REFUND ALL</button>':'')
           +'</td>'
@@ -444,6 +444,7 @@ document.addEventListener('click', function(e) {
 function adminAction(action, username, userId, btn) {
   var messages = {
     ban: 'Ban user ' + username + '? They will be unable to log in.',
+    unban: 'Unban user ' + username + '? They will be able to log in again.',
     reset: 'Reset password for ' + username + '? A new temporary password will be set.',
     refund: 'Issue refund for all orders by ' + username + '?'
   };
@@ -463,6 +464,7 @@ function adminAction(action, username, userId, btn) {
       btn.textContent = 'DONE';
       btn.style.color = '#00cc44';
       if(action === 'ban') btn.closest('tr').style.opacity = '0.4';
+    if(action === 'unban') btn.closest('tr').style.opacity = '1';
     } else {
       btn.textContent = 'ERR';
       btn.disabled = false;
