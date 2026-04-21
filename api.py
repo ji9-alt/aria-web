@@ -2593,69 +2593,46 @@ def api_create_order():
     return jsonify(result)
 
 
+
 @app.route("/api/admin/users")
 @require_admin
 def api_admin_users():
-    """Admin: list all registered users."""
     try:
         import db
-        users = db.get_all_users() if hasattr(db, 'get_all_users') else []
-        # Fallback: query directly
-        if not users:
-            conn = db.get_conn()
-            cur = conn.cursor()
-            cur.execute("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
-            cols = [c[0] for c in cur.description]
-            users = []
-            for row in cur.fetchall():
-                u = dict(zip(cols, row))
-                if 'created_at' in u and u['created_at']:
-                    try: u['created_at'] = u['created_at'].isoformat()
-                    except: pass
-                users.append(u)
-        return jsonify({"users": users})
+        rows = db.query("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
+        for r in (rows or []):
+            if r.get('created_at'):
+                try: r['created_at'] = r['created_at'].isoformat()
+                except: pass
+        return jsonify({"users": rows or []})
     except Exception as e:
         return jsonify({"users": [], "error": str(e)})
 
 @app.route("/api/admin/orders")
 @require_admin
 def api_admin_orders():
-    """Admin: list all orders (alias)."""
     try:
         import db
-        orders = db.get_orders(200)
-        for o in orders:
-            if 'created_at' in o and o['created_at']:
-                try: o['created_at'] = o['created_at'].isoformat()
+        rows = db.query("SELECT o.*, u.username FROM orders o LEFT JOIN users u ON o.user_id=u.id ORDER BY o.created_at DESC LIMIT 200")
+        for r in (rows or []):
+            if r.get('created_at'):
+                try: r['created_at'] = r['created_at'].isoformat()
                 except: pass
-        return jsonify({"orders": orders})
+        return jsonify({"orders": rows or []})
     except Exception as e:
         return jsonify({"orders": [], "error": str(e)})
 
 @app.route("/api/admin/stats")
 @require_admin
 def api_admin_stats():
-    """Admin: system stats."""
     try:
         import db
-        stats = {
-            "total_scans": db.get_scan_count() if hasattr(db, 'get_scan_count') else 0,
-            "threats": db.get_threat_count() if hasattr(db, 'get_threat_count') else 0,
-            "iocs": db.get_ioc_count() if hasattr(db, 'get_ioc_count') else 0,
-        }
-        try:
-            conn = db.get_conn()
-            cur = conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM users")
-            stats["total_users"] = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*), COALESCE(SUM(total),0) FROM orders")
-            row = cur.fetchone()
-            stats["total_orders"] = row[0]
-            stats["total_revenue"] = float(row[1])
-        except: pass
-        return jsonify(stats)
+        users = db.query_one("SELECT COUNT(*) as cnt FROM users") or {"cnt": 0}
+        orders = db.query_one("SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as rev FROM orders") or {"cnt": 0, "rev": 0}
+        scans = db.get_scan_count() if hasattr(db, "get_scan_count") else 0
+        return jsonify({"total_users": users["cnt"], "total_orders": orders["cnt"], "total_revenue": float(orders["rev"]), "total_scans": scans})
     except Exception as e:
-        return jsonify({"total_scans":0,"threats":0,"iocs":0,"total_users":0,"total_orders":0,"total_revenue":0,"error":str(e)})
+        return jsonify({"total_users": 0, "total_orders": 0, "total_revenue": 0, "total_scans": 0, "error": str(e)})
 
 @app.route("/api/orders")
 @require_admin
@@ -2778,28 +2755,28 @@ if __name__ == "__main__":
 
 
 
-@app.route("/api/admin/users")
-@require_admin
-def api_admin_users():
+if __name__ == "__main__":
+    # Initialize database connection and default users
     try:
         import db
-        rows = db.query("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
-        for r in rows:
-            if r.get('created_at'):
-                try: r['created_at'] = r['created_at'].isoformat()
-                except: pass
-        return jsonify({"users": rows or []})
-    except Exception as e:
-        return jsonify({"users": [], "error": str(e)})
+        db.ensure_default_users()
+        print("[ARIA] Database connected, default users ready")
+        print("[ARIA] Login: admin / AriaAdmin2026!  or  analyst / AriaAnalyst2026!")
+    except Exception as _db_err:
+        print(f"[ARIA] Database not available ({_db_err}) — running with fallback auth")
+
+    cert = os.path.join(BASE_DIR, 'cert.pem')
+    key = os.path.join(BASE_DIR, 'key.pem')
+    if os.path.exists(cert) and os.path.exists(key):
+        import ssl
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(cert, key)
+        app.run(host="0.0.0.0", port=443, ssl_context=context)
+    else:
+        print("[ARIA] No TLS certs found, running on HTTP port 5000")
+        app.run(host="0.0.0.0", port=5000)
 
 
-@app.route("/api/admin/stats")
-@require_admin
-def api_admin_stats():
-    try:
-        import db
-        users = db.query_one("SELECT COUNT(*) as cnt FROM users") or {'cnt': 0}
-        orders = db.query_one("SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as rev FROM orders") or {'cnt': 0, 'rev': 0}
-        return jsonify({"total_users": users['cnt'], "total_orders": orders['cnt'], "total_revenue": float(orders['rev']), "total_scans": db.get_scan_count()})
-    except Exception as e:
-        return jsonify({"total_users":0,"total_orders":0,"total_revenue":0,"total_scans":0,"error":str(e)})
+
+
+
