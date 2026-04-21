@@ -2789,13 +2789,20 @@ def api_change_password():
         return jsonify({"error": "Password must be at least 8 characters"}), 400
     try:
         import db
-        user = db.authenticate(request.user['username'], current)
-        if not user:
+        uid = request.user['user_id']
+        username = request.user['username']
+        # Get current hash directly without calling authenticate
+        row = db.query_one("SELECT password_hash FROM users WHERE id=%s", (uid,))
+        if not row:
+            return jsonify({"error": "User not found"}), 404
+        if not db.verify_password(current, row['password_hash']):
             return jsonify({"error": "Current password is incorrect"}), 401
         hashed = db.hash_password(new_pw)
-        db.query("UPDATE users SET password_hash=%s WHERE id=%s", (hashed, request.user['id']), fetch=False)
+        db.query("UPDATE users SET password_hash=%s WHERE id=%s", (hashed, uid), fetch=False)
         return jsonify({"ok": True})
     except Exception as e:
+        import traceback
+        print("[CHANGE_PW ERROR]", traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 
@@ -2810,7 +2817,7 @@ def api_request_refund():
     try:
         import db
         # Verify order belongs to user
-        order = db.query_one("SELECT * FROM orders WHERE order_id=%s AND user_id=%s", (order_id, request.user['id']))
+        order = db.query_one("SELECT * FROM orders WHERE order_id=%s AND user_id=%s", (order_id, request.user['user_id']))
         if not order:
             return jsonify({"error": "Order not found"}), 404
         if order['status'] != 'confirmed':
@@ -2826,7 +2833,7 @@ def api_request_refund():
             created_at TIMESTAMP DEFAULT NOW()
         )""", fetch=False)
         db.query("INSERT INTO refund_requests (user_id, order_id, reason, amount) VALUES (%s,%s,%s,%s)",
-                 (request.user['id'], order_id, reason, order['total']), fetch=False)
+                 (request.user['user_id'], order_id, reason, order['total']), fetch=False)
         db.query("UPDATE orders SET status='pending_refund' WHERE order_id=%s", (order_id,), fetch=False)
         return jsonify({"ok": True})
     except Exception as e:
