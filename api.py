@@ -2599,7 +2599,7 @@ def api_create_order():
 def api_admin_users():
     try:
         import db
-        rows = db.query("SELECT id, username, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
+        rows = db.query("SELECT u.id, u.username, u.role, u.created_at, u.banned, p.full_name, p.email FROM users u LEFT JOIN user_profiles p ON u.id=p.user_id ORDER BY u.created_at DESC LIMIT 200")
         for r in (rows or []):
             if r.get("created_at"):
                 try:
@@ -2652,7 +2652,14 @@ def api_admin_user_action():
         import db
         if action == "ban":
             db.query("UPDATE users SET banned=1 WHERE id=%s", (user_id,), fetch=False)
-            # sessions are in-memory
+            # Kill all in-memory sessions for this user
+            try:
+                import db as _db
+                to_del = [k for k, v in _db._sessions.items() if str(v.get('user_id')) == str(user_id)]
+                for k in to_del:
+                    del _db._sessions[k]
+            except Exception:
+                pass
             return jsonify({"ok": True})
         elif action == "unban":
             db.query("UPDATE users SET banned=0 WHERE id=%s", (user_id,), fetch=False)
