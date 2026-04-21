@@ -4,146 +4,177 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARIA Store - Products & Services</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0a0a0a; color:#e0e0e0; font-family:'Inter',sans-serif; min-height:100vh; }
+:root {
+  --red:#cc0000; --red-dim:rgba(204,0,0,0.15); --red-glow:rgba(204,0,0,0.3);
+  --bg:#080808; --bg2:#0f0f0f; --bg3:#141414;
+  --border:#1e1e1e; --text:#e0e0e0; --muted:#555; --dim:#333;
+}
+html { scroll-behavior:smooth; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:"IBM Plex Sans",sans-serif; min-height:100vh; }
+body::before {
+  content:""; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none; z-index:9999;
+}
 
-  nav { display:flex; justify-content:space-between; align-items:center; padding:20px 48px; border-bottom:1px solid #1a1a1a; }
-  .nav-brand { display:flex; align-items:center; gap:12px; }
-  .nav-logo { font-size:24px; font-weight:900; letter-spacing:6px; color:#cc0000; text-shadow:0 0 20px rgba(204,0,0,0.3); }
-  .nav-tag { font-size:10px; color:#555; letter-spacing:3px; text-transform:uppercase; }
-  .nav-links { display:flex; gap:24px; align-items:center; }
-  .nav-links a { color:#666; font-size:13px; text-decoration:none; letter-spacing:1px; transition:color 0.2s; }
-  .nav-links a:hover { color:#cc0000; }
-  .nav-btn { background:#cc0000; color:white; border:none; padding:8px 20px; font-size:12px; letter-spacing:2px; cursor:pointer; text-decoration:none; font-family:'Inter',sans-serif; font-weight:600; }
+nav {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:18px 48px; border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:100;
+  background:rgba(8,8,8,0.95); backdrop-filter:blur(10px);
+}
+.nav-brand { display:flex; align-items:center; gap:12px; text-decoration:none; }
+.nav-logo { font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:700; letter-spacing:8px; color:var(--red); text-shadow:0 0 30px var(--red-glow); }
+.nav-tag { font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+.nav-links { display:flex; gap:28px; align-items:center; }
+.nav-links a { color:var(--muted); font-size:11px; text-decoration:none; letter-spacing:2px; text-transform:uppercase; font-family:"IBM Plex Mono",monospace; transition:color 0.2s; }
+.nav-links a:hover { color:var(--red); }
+.nav-btn { background:var(--red); color:white; border:none; padding:9px 22px; font-size:11px; letter-spacing:3px; cursor:pointer; text-decoration:none; font-family:"IBM Plex Mono",monospace; font-weight:600; text-transform:uppercase; transition:all 0.2s; }
+.nav-btn:hover { background:#ee1111; }
 
-  .store-header { text-align:center; padding:60px 48px 40px; background:radial-gradient(ellipse at center, rgba(204,0,0,0.03) 0%, transparent 70%); }
-  .store-header h1 { font-size:42px; font-weight:900; color:#fff; letter-spacing:2px; margin-bottom:8px; }
-  .store-header h1 span { color:#cc0000; }
-  .store-header p { color:#555; font-size:14px; letter-spacing:1px; }
+.store-header { text-align:center; padding:60px 48px 40px; position:relative; overflow:hidden; }
+.store-header::before {
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(204,0,0,0.05) 0%, transparent 70%);
+}
+.store-header h1 { font-size:48px; font-weight:700; color:#fff; letter-spacing:-1px; margin-bottom:10px; position:relative; }
+.store-header h1 span { color:var(--red); }
+.store-header p { color:var(--muted); font-size:13px; letter-spacing:1px; position:relative; font-family:"IBM Plex Mono",monospace; }
 
-  .section-title { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:#cc0000; text-align:center; padding:40px 0 24px; border-top:1px solid #1a1a1a; }
+.section-label {
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10px; letter-spacing:5px; text-transform:uppercase; color:var(--red);
+  text-align:center; padding:48px 0 32px;
+  display:flex; align-items:center; justify-content:center; gap:24px;
+  margin:0 48px;
+}
+.section-label::before,.section-label::after { content:""; flex:1; height:1px; background:var(--border); }
 
-  .products { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:#1a1a1a; margin:0 48px; }
-  .product { background:#0a0a0a; padding:40px 32px; text-align:center; transition:background 0.2s; display:flex; flex-direction:column; justify-content:space-between; }
-  .product:hover { background:#111; }
-  .product-icon { font-size:40px; margin-bottom:16px; }
-  .product h3 { font-size:14px; font-weight:700; color:#fff; letter-spacing:1px; margin-bottom:8px; }
-  .product p { font-size:12px; color:#555; line-height:1.6; margin-bottom:16px; flex:1; }
-  .product-price { font-size:24px; font-weight:900; color:#cc0000; margin-bottom:16px; }
-  .product-price span { font-size:12px; color:#555; font-weight:400; }
-  .add-btn { background:transparent; color:#cc0000; border:1px solid #cc0000; padding:10px 24px; font-size:11px; letter-spacing:2px; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; transition:all 0.2s; text-transform:uppercase; }
-  .add-btn:hover { background:#cc0000; color:#fff; }
-  .add-btn.added { background:#1a3a1a; color:#00cc44; border-color:#00cc44; }
+.products { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin:0 48px; }
+.product { background:var(--bg); padding:40px 32px; transition:background 0.25s; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; }
+.product::after { content:""; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--red); transform:scaleX(0); transform-origin:left; transition:transform 0.3s; }
+.product:hover::after { transform:scaleX(1); }
+.product:hover { background:var(--bg2); }
+.product-icon { font-size:32px; margin-bottom:20px; display:block; }
+.product h3 { font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700; color:#fff; letter-spacing:3px; text-transform:uppercase; margin-bottom:12px; }
+.product p { font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:20px; flex:1; }
+.product-price { font-family:"IBM Plex Mono",monospace; font-size:28px; font-weight:700; color:var(--red); margin-bottom:20px; text-shadow:0 0 20px var(--red-glow); }
+.product-price span { font-size:11px; color:var(--muted); font-weight:400; }
+.add-btn { background:transparent; color:var(--red); border:1px solid var(--red); padding:11px 24px; font-size:10px; letter-spacing:3px; cursor:pointer; font-family:"IBM Plex Mono",monospace; font-weight:600; transition:all 0.2s; text-transform:uppercase; }
+.add-btn:hover { background:var(--red); color:#fff; }
+.add-btn.added { background:rgba(0,204,68,0.1); color:#00cc44; border-color:#00cc44; }
 
-  /* Cart sidebar */
-  .cart-toggle { position:fixed; top:20px; right:20px; z-index:999; background:#1a1a1a; border:1px solid #333; color:#cc0000; width:48px; height:48px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-  .cart-toggle:hover { border-color:#cc0000; }
-  .cart-badge { position:absolute; top:-6px; right:-6px; background:#cc0000; color:#fff; width:20px; height:20px; border-radius:50%; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
-  .cart-panel { position:fixed; top:0; right:-420px; width:400px; height:100vh; z-index:1000; background:#111; border-left:1px solid #222; padding:32px; overflow-y:auto; transition:right 0.3s ease; }
-  .cart-panel.open { right:0; }
-  .cart-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999; }
-  .cart-overlay.open { display:block; }
-  .cart-panel h2 { font-size:12px; letter-spacing:4px; color:#cc0000; margin-bottom:24px; text-transform:uppercase; }
-  .cart-item { display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid #1a1a1a; }
-  .cart-item-info h4 { font-size:13px; color:#fff; margin-bottom:4px; }
-  .cart-item-info p { font-size:11px; color:#555; }
-  .cart-item-price { font-size:14px; font-weight:700; color:#cc0000; }
-  .cart-remove { background:none; border:none; color:#333; cursor:pointer; font-size:16px; margin-left:12px; }
-  .cart-remove:hover { color:#cc0000; }
-  .cart-total { display:flex; justify-content:space-between; padding:24px 0; border-top:1px solid #333; margin-top:16px; }
-  .cart-total span { font-size:13px; letter-spacing:2px; color:#888; }
-  .cart-total strong { font-size:20px; color:#cc0000; }
-  .cart-empty { color:#333; font-size:13px; text-align:center; padding:60px 0; }
+/* Cart */
+.cart-toggle { position:fixed; top:20px; right:20px; z-index:999; background:var(--bg2); border:1px solid var(--border); color:var(--red); width:48px; height:48px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color 0.2s; }
+.cart-toggle:hover { border-color:var(--red); }
+.cart-badge { position:absolute; top:-6px; right:-6px; background:var(--red); color:#fff; width:20px; height:20px; border-radius:50%; font-size:10px; font-weight:700; display:none; align-items:center; justify-content:center; font-family:"IBM Plex Mono",monospace; }
+.cart-panel { position:fixed; top:0; right:-420px; width:400px; height:100vh; z-index:1000; background:var(--bg2); border-left:1px solid var(--border); padding:32px; overflow-y:auto; transition:right 0.3s ease; }
+.cart-panel.open { right:0; }
+.cart-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:999; }
+.cart-overlay.open { display:block; }
+.cart-panel h2 { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:4px; color:var(--red); margin-bottom:24px; text-transform:uppercase; }
+.cart-item { display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid var(--border); }
+.cart-item-info h4 { font-size:13px; color:#fff; margin-bottom:4px; }
+.cart-item-info p { font-size:11px; color:var(--muted); font-family:"IBM Plex Mono",monospace; }
+.cart-item-price { font-family:"IBM Plex Mono",monospace; font-size:14px; font-weight:700; color:var(--red); }
+.cart-remove { background:none; border:none; color:var(--dim); cursor:pointer; font-size:16px; margin-left:12px; transition:color 0.2s; }
+.cart-remove:hover { color:var(--red); }
+.cart-total { display:flex; justify-content:space-between; padding:24px 0; border-top:1px solid var(--border); margin-top:16px; }
+.cart-total span { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:2px; color:#888; text-transform:uppercase; }
+.cart-total strong { font-family:"IBM Plex Mono",monospace; font-size:20px; color:var(--red); }
+.cart-empty { color:var(--dim); font-family:"IBM Plex Mono",monospace; font-size:12px; text-align:center; padding:60px 0; }
+.checkout-btn { width:100%; background:var(--red); color:#fff; border:none; padding:14px; font-size:11px; letter-spacing:3px; cursor:pointer; font-family:"IBM Plex Mono",monospace; font-weight:600; margin-top:12px; text-transform:uppercase; transition:background 0.2s; }
+.checkout-btn:hover { background:#ee1111; }
+.checkout-btn:disabled { background:var(--border); color:var(--muted); cursor:not-allowed; }
 
-  /* Checkout button */
-  .checkout-btn { width:100%; background:#cc0000; color:#fff; border:none; padding:14px; font-size:13px; letter-spacing:2px; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; margin-top:12px; }
-  .checkout-btn:hover { background:#ee1111; }
-  .checkout-btn:disabled { background:#333; color:#555; cursor:not-allowed; }
+/* Modals */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; justify-content:center; align-items:center; backdrop-filter:blur(4px); }
+.modal-overlay.active { display:flex; }
+.modal { background:var(--bg2); border:1px solid var(--border); padding:48px; width:520px; position:relative; max-height:90vh; overflow-y:auto; animation:modalIn 0.2s ease both; }
+.modal.narrow { width:400px; }
+@keyframes modalIn { from{opacity:0;transform:translateY(-10px) scale(0.98);}to{opacity:1;transform:none;} }
+.modal h2 { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:5px; text-transform:uppercase; color:var(--red); margin-bottom:28px; text-align:center; }
+.modal input,.modal select { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:13px 16px; font-size:13px; font-family:"IBM Plex Mono",monospace; margin-bottom:12px; outline:none; transition:border-color 0.2s; letter-spacing:1px; }
+.modal input:focus,.modal select:focus { border-color:var(--red); }
+.modal input::placeholder { color:var(--dim); }
+.modal label { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted); letter-spacing:2px; display:block; margin-bottom:4px; text-transform:uppercase; }
+.modal .row { display:flex; gap:12px; }
+.modal .row > div { flex:1; }
+.modal .close { position:absolute; top:16px; right:20px; color:var(--muted); cursor:pointer; font-size:18px; background:none; border:none; transition:color 0.2s; }
+.modal .close:hover { color:var(--red); }
+.modal .error-msg { font-family:"IBM Plex Mono",monospace; color:var(--red); font-size:11px; text-align:center; margin-bottom:12px; display:none; letter-spacing:1px; }
+.modal .success-msg { font-family:"IBM Plex Mono",monospace; color:#00cc44; font-size:11px; text-align:center; margin-bottom:12px; display:none; }
+.submit-btn { width:100%; background:var(--red); color:white; border:none; padding:14px; font-size:11px; letter-spacing:3px; cursor:pointer; font-family:"IBM Plex Mono",monospace; font-weight:600; margin-top:8px; text-transform:uppercase; transition:background 0.2s; }
+.submit-btn:hover { background:#ee1111; }
+.modal-link { font-size:11px; color:var(--muted); text-align:center; margin-top:16px; }
+.modal-link a { color:var(--red); text-decoration:none; }
 
-  /* Modal */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center; }
-  .modal-overlay.active { display:flex; }
-  .modal { background:#111; border:1px solid #222; padding:48px; width:520px; position:relative; max-height:90vh; overflow-y:auto; }
-  .modal h2 { font-size:12px; letter-spacing:4px; text-transform:uppercase; color:#cc0000; margin-bottom:24px; text-align:center; }
-  .modal input, .modal select { width:100%; background:#0a0a0a; border:1px solid #222; color:#e0e0e0; padding:12px 16px; font-size:13px; font-family:'Inter',sans-serif; margin-bottom:12px; outline:none; }
-  .modal input:focus { border-color:#cc0000; }
-  .modal label { font-size:11px; color:#555; letter-spacing:1px; display:block; margin-bottom:4px; }
-  .modal .row { display:flex; gap:12px; }
-  .modal .row > div { flex:1; }
-  .modal .close { position:absolute; top:16px; right:20px; color:#555; cursor:pointer; font-size:18px; background:none; border:none; }
-  .modal .close:hover { color:#cc0000; }
-  .modal .error-msg { color:#cc0000; font-size:11px; text-align:center; margin-bottom:12px; display:none; }
-  .modal .success-msg { color:#00cc44; font-size:11px; text-align:center; margin-bottom:12px; display:none; }
-  .submit-btn { width:100%; background:#cc0000; color:white; border:none; padding:14px; font-size:13px; letter-spacing:2px; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; margin-top:8px; }
-  .submit-btn:hover { background:#ee1111; }
+/* Order summary */
+.order-summary { border:1px solid var(--border); padding:16px; margin-bottom:20px; }
+.order-line { display:flex; justify-content:space-between; padding:6px 0; font-size:12px; }
+.order-line .name { color:#888; }
+.order-line .price { color:var(--red); font-family:"IBM Plex Mono",monospace; }
+.order-total-line { display:flex; justify-content:space-between; padding:10px 0 0; border-top:1px solid var(--border); margin-top:8px; font-weight:700; font-size:14px; }
 
-  /* Order summary in checkout */
-  .order-summary { border:1px solid #1a1a1a; padding:16px; margin-bottom:20px; }
-  .order-line { display:flex; justify-content:space-between; padding:6px 0; font-size:12px; }
-  .order-line .name { color:#888; }
-  .order-line .price { color:#cc0000; }
-  .order-total-line { display:flex; justify-content:space-between; padding:10px 0 0; border-top:1px solid #333; margin-top:8px; font-weight:700; font-size:14px; }
-  .order-total-line .name { color:#fff; }
+/* Password strength */
+.pw-strength { height:3px; background:var(--border); margin:-8px 0 12px; }
+.pw-strength .bar { height:100%; width:0; transition:all 0.3s; }
 
-  /* PayPal button container */
-  #paypal-button-container { margin-top:16px; min-height:50px; }
+/* Order success */
+.order-success { text-align:center; padding:20px 0; }
+.order-success h3 { color:#00cc44; font-size:16px; margin-bottom:12px; font-family:"IBM Plex Mono",monospace; letter-spacing:2px; }
+.order-success .order-id { font-family:"IBM Plex Mono",monospace; color:var(--red); font-size:20px; font-weight:700; margin:12px 0; letter-spacing:2px; }
+.order-success p { color:var(--muted); font-size:12px; line-height:1.7; margin-bottom:8px; }
+.cred-box { background:var(--bg); border:1px solid var(--border); padding:16px; margin:16px 0; text-align:left; }
+.cred-box h4 { font-family:"IBM Plex Mono",monospace; color:var(--red); font-size:10px; letter-spacing:3px; margin-bottom:12px; text-transform:uppercase; }
+.cred-row { display:flex; justify-content:space-between; padding:4px 0; font-size:12px; }
+.cred-row .label { color:var(--muted); }
+.cred-row .value { color:#fff; font-family:monospace; }
 
-  /* Order success */
-  .order-success { text-align:center; padding:20px 0; }
-  .order-success h3 { color:#00cc44; font-size:16px; margin-bottom:12px; }
-  .order-success .order-id { color:#cc0000; font-size:20px; font-weight:700; margin:12px 0; letter-spacing:2px; }
-  .order-success p { color:#555; font-size:12px; line-height:1.7; margin-bottom:8px; }
-  .cred-box { background:#0a0a0a; border:1px solid #222; padding:16px; margin:16px 0; text-align:left; }
-  .cred-box h4 { color:#cc0000; font-size:11px; letter-spacing:2px; margin-bottom:12px; text-transform:uppercase; }
-  .cred-row { display:flex; justify-content:space-between; padding:4px 0; font-size:12px; }
-  .cred-row .label { color:#555; }
-  .cred-row .value { color:#fff; font-family:monospace; }
+/* Chatbot */
+.chat-toggle { position:fixed; bottom:24px; right:24px; z-index:998; background:var(--red); color:#fff; width:56px; height:56px; border-radius:50%; border:none; font-size:24px; cursor:pointer; box-shadow:0 4px 20px rgba(204,0,0,0.4); transition:transform 0.2s; }
+.chat-toggle:hover { transform:scale(1.1); }
+.chat-panel { position:fixed; bottom:96px; right:24px; width:380px; height:500px; background:var(--bg2); border:1px solid var(--border); z-index:998; display:none; flex-direction:column; }
+.chat-panel.open { display:flex; }
+.chat-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.chat-header h3 { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:3px; color:var(--red); text-transform:uppercase; }
+.chat-header button { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; }
+.chat-messages { flex:1; overflow-y:auto; padding:16px 20px; }
+.chat-msg { margin-bottom:12px; max-width:85%; }
+.chat-msg.bot { margin-right:auto; }
+.chat-msg.user { margin-left:auto; }
+.chat-msg .bubble { padding:10px 14px; font-size:12px; line-height:1.5; }
+.chat-msg.bot .bubble { background:var(--bg3); color:#ccc; border-left:2px solid var(--red); }
+.chat-msg.user .bubble { background:var(--red); color:#fff; }
+.chat-msg .meta { font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--dim); margin-top:4px; letter-spacing:1px; }
+.chat-input { display:flex; border-top:1px solid var(--border); }
+.chat-input input { flex:1; background:var(--bg); border:none; color:var(--text); padding:14px 16px; font-size:12px; font-family:"IBM Plex Mono",monospace; outline:none; }
+.chat-input button { background:var(--red); color:#fff; border:none; padding:0 20px; font-size:11px; cursor:pointer; letter-spacing:2px; font-family:"IBM Plex Mono",monospace; font-weight:600; transition:background 0.2s; }
+.chat-input button:hover { background:#ee1111; }
 
-  /* Register modal specifics */
-  .pw-strength { height:3px; background:#222; margin:-8px 0 12px; }
-  .pw-strength .bar { height:100%; width:0; transition:all 0.3s; }
-
-  /* AI Chatbot */
-  .chat-toggle { position:fixed; bottom:24px; right:24px; z-index:998; background:#cc0000; color:#fff; width:56px; height:56px; border-radius:50%; border:none; font-size:24px; cursor:pointer; box-shadow:0 4px 20px rgba(204,0,0,0.4); }
-  .chat-toggle:hover { transform:scale(1.1); }
-  .chat-panel { position:fixed; bottom:96px; right:24px; width:380px; height:500px; background:#111; border:1px solid #222; z-index:998; display:none; flex-direction:column; }
-  .chat-panel.open { display:flex; }
-  .chat-header { padding:16px 20px; border-bottom:1px solid #222; display:flex; justify-content:space-between; align-items:center; }
-  .chat-header h3 { font-size:12px; letter-spacing:3px; color:#cc0000; text-transform:uppercase; }
-  .chat-header button { background:none; border:none; color:#555; cursor:pointer; font-size:16px; }
-  .chat-messages { flex:1; overflow-y:auto; padding:16px 20px; }
-  .chat-msg { margin-bottom:12px; max-width:85%; }
-  .chat-msg.bot { margin-right:auto; }
-  .chat-msg.user { margin-left:auto; }
-  .chat-msg .bubble { padding:10px 14px; font-size:12px; line-height:1.5; border-radius:2px; white-space:pre-line; }
-  .chat-msg.bot .bubble { background:#1a1a1a; color:#ccc; }
-  .chat-msg.user .bubble { background:#cc0000; color:#fff; }
-  .chat-msg .meta { font-size:9px; color:#333; margin-top:4px; letter-spacing:1px; }
-  .chat-input { display:flex; border-top:1px solid #222; }
-  .chat-input input { flex:1; background:#0a0a0a; border:none; color:#e0e0e0; padding:14px 16px; font-size:12px; font-family:'Inter',sans-serif; outline:none; }
-  .chat-input button { background:#cc0000; color:#fff; border:none; padding:0 20px; font-size:12px; cursor:pointer; letter-spacing:2px; font-family:'Inter',sans-serif; font-weight:600; }
-
-  footer { padding:24px 48px; border-top:1px solid #1a1a1a; display:flex; justify-content:space-between; align-items:center; margin-top:60px; }
-  footer p { font-size:11px; color:#333; letter-spacing:1px; }
+footer { padding:20px 48px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; margin-top:60px; }
+footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
+@keyframes dp{0%,80%,100%{opacity:0.3;}40%{opacity:1;}}
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="nav-brand">
+  <a class="nav-brand" href="/">
     <div>
       <div class="nav-logo">ARIA</div>
       <div class="nav-tag">Automated Response & Intelligence Agent</div>
     </div>
-  </div>
+  </a>
   <div class="nav-links" id="navLinks">
     <a href="/">Home</a>
     <a href="/store">Store</a>
     <a href="/portal">My Account</a>
-    <a href="#" onclick="openRegister()" id="navRegister">Register</a>
-    <a class="nav-btn" href="/" id="navAuth">SIGN IN</a>
+    <a href="#" onclick="openRegister(event)" id="navRegister">Register</a>
+    <a class="nav-btn" href="#" onclick="openStoreLogin(event)" id="navAuth">SIGN IN</a>
   </div>
 </nav>
 
@@ -151,84 +182,113 @@
 
 <div class="store-header">
   <h1>ARIA <span>Store</span></h1>
-  <p>Enterprise threat intelligence products and managed security services</p>
+  <p>// Enterprise threat intelligence products and managed security services</p>
 </div>
 
-<!-- GOODS -->
-<div class="section-title">Products</div>
+<!-- PRODUCTS -->
+<div class="section-label">Products</div>
 <div class="products">
   <div class="product">
     <div>
-      <div class="product-icon">&#x1f4c4;</div>
+      <span class="product-icon">&#x1f4c4;</span>
       <h3>Threat Intelligence Report</h3>
       <p>Professional PDF malware analysis report with confidence scoring, MITRE ATT&CK mapping, IOC extraction, and remediation steps.</p>
     </div>
-    <div class="product-price">$49 <span>/ report</span></div>
-    <button class="add-btn" onclick="addToCart('report','Threat Intel Report',49.00,'product')">Add to Cart</button>
+    <div>
+      <div class="product-price">$49 <span>/ report</span></div>
+      <button class="add-btn" onclick="addToCart('report','Threat Intel Report',49.00,'product',event)">Add to Cart</button>
+    </div>
   </div>
   <div class="product">
     <div>
-      <div class="product-icon">&#x1f6e1;</div>
+      <span class="product-icon">&#x1f6e1;</span>
       <h3>YARA Rule Pack</h3>
       <p>Curated detection rule sets covering ransomware, trojans, APT toolkits, and zero-day signatures. Updated monthly.</p>
     </div>
-    <div class="product-price">$199 <span>/ pack</span></div>
-    <button class="add-btn" onclick="addToCart('yara','YARA Rule Pack',199.00,'product')">Add to Cart</button>
+    <div>
+      <div class="product-price">$199 <span>/ pack</span></div>
+      <button class="add-btn" onclick="addToCart('yara','YARA Rule Pack',199.00,'product',event)">Add to Cart</button>
+    </div>
   </div>
   <div class="product">
     <div>
-      <div class="product-icon">&#x1f50d;</div>
+      <span class="product-icon">&#x1f50d;</span>
       <h3>IOC Feed Subscription</h3>
       <p>Real-time indicators of compromise database with file hashes, IPs, domains, STIX/TAXII export, and API access.</p>
     </div>
-    <div class="product-price">$99 <span>/ month</span></div>
-    <button class="add-btn" onclick="addToCart('ioc','IOC Feed Subscription',99.00,'subscription')">Add to Cart</button>
+    <div>
+      <div class="product-price">$99 <span>/ month</span></div>
+      <button class="add-btn" onclick="addToCart('ioc','IOC Feed Subscription',99.00,'subscription',event)">Add to Cart</button>
+    </div>
   </div>
 </div>
 
 <!-- SERVICES -->
-<div class="section-title">Services</div>
+<div class="section-label">Services</div>
 <div class="products">
   <div class="product">
     <div>
-      <div class="product-icon">&#x1f9ea;</div>
+      <span class="product-icon">&#x1f9ea;</span>
       <h3>On-Demand Malware Analysis</h3>
       <p>Submit suspicious files for comprehensive static and dynamic analysis. Full PE inspection, behavioral analysis, YARA matching, and AI classification.</p>
     </div>
-    <div class="product-price">$149 <span>/ scan</span></div>
-    <button class="add-btn" onclick="addToCart('scan','Malware Analysis Scan',149.00,'service')">Add to Cart</button>
+    <div>
+      <div class="product-price">$149 <span>/ scan</span></div>
+      <button class="add-btn" onclick="addToCart('scan','Malware Analysis Scan',149.00,'service',event)">Add to Cart</button>
+    </div>
   </div>
   <div class="product">
     <div>
-      <div class="product-icon">&#x1f916;</div>
+      <span class="product-icon">&#x1f916;</span>
       <h3>AI Threat Chatbot</h3>
       <p>AI-powered security assistant for real-time threat intelligence queries, IOC lookups, malware family identification, and MITRE ATT&CK mapping.</p>
     </div>
-    <div class="product-price">$79 <span>/ month</span></div>
-    <button class="add-btn" onclick="addToCart('chatbot','AI Threat Chatbot',79.00,'subscription')">Add to Cart</button>
+    <div>
+      <div class="product-price">$79 <span>/ month</span></div>
+      <button class="add-btn" onclick="addToCart('chatbot','AI Threat Chatbot',79.00,'subscription',event)">Add to Cart</button>
+    </div>
   </div>
   <div class="product">
     <div>
-      <div class="product-icon">&#x2699;</div>
+      <span class="product-icon">&#x2699;</span>
       <h3>Agentic Workflow Pipeline</h3>
       <p>Fully automated analysis pipeline: file intake, static scan, YARA detection, AI classification, IOC enrichment, PDF reporting, and SIEM forwarding.</p>
     </div>
-    <div class="product-price">$499 <span>/ month</span></div>
-    <button class="add-btn" onclick="addToCart('agentic','Agentic Workflow Pipeline',499.00,'subscription')">Add to Cart</button>
+    <div>
+      <div class="product-price">$499 <span>/ month</span></div>
+      <button class="add-btn" onclick="addToCart('agentic','Agentic Workflow Pipeline',499.00,'subscription',event)">Add to Cart</button>
+    </div>
   </div>
 </div>
 
 <!-- Cart Panel -->
 <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
 <div class="cart-panel" id="cartPanel">
-  <h2>Shopping Cart</h2>
+  <h2>// Shopping Cart</h2>
   <div id="cartItems"></div>
   <div id="cartFooter" style="display:none;">
     <div class="cart-total">
-      <span>TOTAL</span>
+      <span>Total</span>
       <strong id="cartTotal">$0.00</strong>
     </div>
     <button class="checkout-btn" onclick="openCheckout()">PROCEED TO CHECKOUT</button>
+  </div>
+</div>
+
+<!-- Store Login Modal -->
+<div class="modal-overlay" id="storeLoginModal">
+  <div class="modal narrow">
+    <button class="close" onclick="closeStoreLogin()">&times;</button>
+    <h2>// Sign In</h2>
+    <div class="error-msg" id="storeLoginError">Invalid credentials</div>
+    <label>Username</label>
+    <input type="text" id="storeLoginUser" placeholder="Username" autocomplete="off">
+    <label>Password</label>
+    <input type="password" id="storeLoginPass" placeholder="Password">
+    <button class="submit-btn" onclick="doStoreLogin()">SIGN IN</button>
+    <div class="modal-link">
+      No account? <a href="#" onclick="closeStoreLogin();openRegister(event)">Register here</a>
+    </div>
   </div>
 </div>
 
@@ -236,7 +296,7 @@
 <div class="modal-overlay" id="registerModal">
   <div class="modal">
     <button class="close" onclick="closeRegister()">&times;</button>
-    <h2>Create Account</h2>
+    <h2>// Create Account</h2>
     <div class="error-msg" id="regError"></div>
     <div class="success-msg" id="regSuccess"></div>
     <label>Full Name</label>
@@ -253,7 +313,7 @@
     <label>Confirm Password</label>
     <input type="password" id="regPass2" placeholder="Repeat password">
     <button class="submit-btn" onclick="doRegister()">CREATE ACCOUNT</button>
-    <p style="text-align:center;margin-top:16px;font-size:11px;color:#555;">Already have an account? <a href="/" style="color:#cc0000;">Sign in</a></p>
+    <div class="modal-link">Already have an account? <a href="#" onclick="closeRegister();openStoreLogin(event)">Sign in</a></div>
   </div>
 </div>
 
@@ -262,36 +322,28 @@
   <div class="modal">
     <button class="close" onclick="closeCheckout()">&times;</button>
     <div id="checkoutForm">
-      <h2>Checkout</h2>
+      <h2>// Checkout</h2>
       <div class="error-msg" id="coError"></div>
       <div class="order-summary" id="checkoutSummary"></div>
-
       <div id="checkoutAuth">
-        <p style="font-size:12px;color:#888;margin-bottom:12px;text-align:center;">Sign in or create an account to complete your purchase</p>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;text-align:center;font-family:'IBM Plex Mono',monospace;">Sign in to complete your purchase</p>
         <div class="row">
-          <div>
-            <label>Username</label>
-            <input type="text" id="coUser" placeholder="Username">
-          </div>
-          <div>
-            <label>Password</label>
-            <input type="password" id="coPass" placeholder="Password">
-          </div>
+          <div><label>Username</label><input type="text" id="coUser" placeholder="Username"></div>
+          <div><label>Password</label><input type="password" id="coPass" placeholder="Password"></div>
         </div>
-        <button class="submit-btn" onclick="checkoutLogin()" style="background:#333;margin-bottom:8px;">SIGN IN TO CHECKOUT</button>
-        <p style="text-align:center;font-size:11px;color:#555;">No account? <a href="#" onclick="closeCheckout();openRegister();" style="color:#cc0000;">Register first</a></p>
-        <hr style="border:none;border-top:1px solid #222;margin:16px 0;">
+        <button class="submit-btn" onclick="checkoutLogin()" style="background:var(--bg3);margin-bottom:8px;">SIGN IN TO CHECKOUT</button>
+        <div class="modal-link">No account? <a href="#" onclick="closeCheckout();openRegister(event)">Register first</a></div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
       </div>
-
       <div id="checkoutPayment" style="display:none;">
-        <p style="font-size:12px;color:#00cc44;margin-bottom:16px;text-align:center;" id="coWelcome">Welcome back!</p>
+        <p style="font-size:12px;color:#00cc44;margin-bottom:16px;text-align:center;font-family:'IBM Plex Mono',monospace;" id="coWelcome">Welcome back!</p>
         <label>Billing Email</label>
         <input type="email" id="coBillingEmail" placeholder="john@company.com">
-        <p style="font-size:11px;color:#555;text-align:center;margin:12px 0 4px;">Pay with PayPal</p>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:center;margin:12px 0 4px;letter-spacing:2px;text-transform:uppercase;">Pay with PayPal</p>
         <div id="paypal-button-container"></div>
-        <hr style="border:none;border-top:1px solid #222;margin:16px 0;">
-        <p style="font-size:11px;color:#555;text-align:center;margin-bottom:8px;">Or complete order directly</p>
-        <button class="submit-btn" onclick="demoCheckout();">COMPLETE ORDER</button>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px;letter-spacing:2px;">Or use demo checkout</p>
+        <button class="submit-btn" onclick="demoCheckout();" style="background:var(--bg3);">DEMO CHECKOUT</button>
       </div>
     </div>
     <div id="checkoutSuccess" class="order-success" style="display:none;"></div>
@@ -321,8 +373,8 @@
   <p>ARIA v2.0 &mdash; OpenClaw Project &mdash; 2026</p>
 </footer>
 
-<!-- PayPal Sandbox SDK — loaded dynamically with fallback -->
 <script>
+// PayPal
 var paypalReady = false;
 function loadPayPalSDK() {
   var s = document.createElement('script');
@@ -332,24 +384,20 @@ function loadPayPalSDK() {
   document.head.appendChild(s);
 }
 loadPayPalSDK();
-</script>
 
-<script>
-// ═══════════════ CART ═══════════════
+// CART
 var cart = JSON.parse(localStorage.getItem('aria_cart') || '[]');
 var checkoutUser = null;
 
 function saveCart() { localStorage.setItem('aria_cart', JSON.stringify(cart)); renderCart(); }
 function getTotal() { return cart.reduce(function(s,i){return s+i.price;},0); }
 
-function addToCart(id,name,price,type) {
+function addToCart(id,name,price,type,e) {
   cart.push({id:id, name:name, price:price, type:type});
   saveCart();
-  var btn = event.target;
-  btn.textContent = 'ADDED'; btn.classList.add('added');
-  setTimeout(function(){ btn.textContent='Add to Cart'; btn.classList.remove('added'); },1500);
+  var btn = e ? e.target : null;
+  if (btn) { btn.textContent = 'ADDED'; btn.classList.add('added'); setTimeout(function(){ btn.textContent='Add to Cart'; btn.classList.remove('added'); },1500); }
 }
-
 function removeFromCart(idx) { cart.splice(idx,1); saveCart(); }
 function clearCart() { cart=[]; saveCart(); }
 
@@ -359,7 +407,7 @@ function renderCart() {
   var footer = document.getElementById('cartFooter');
   badge.textContent = cart.length;
   badge.style.display = cart.length > 0 ? 'flex' : 'none';
-  if (cart.length === 0) { items.innerHTML='<div class="cart-empty">Your cart is empty</div>'; footer.style.display='none'; return; }
+  if (cart.length === 0) { items.innerHTML='<div class="cart-empty">// Cart is empty</div>'; footer.style.display='none'; return; }
   var html='';
   for(var i=0;i<cart.length;i++){
     html+='<div class="cart-item"><div class="cart-item-info"><h4>'+cart[i].name+'</h4><p>'+cart[i].type+'</p></div>'
@@ -370,12 +418,42 @@ function renderCart() {
   document.getElementById('cartTotal').textContent='$'+getTotal().toFixed(2);
 }
 renderCart();
-
 function toggleCart(){ document.getElementById('cartPanel').classList.toggle('open'); document.getElementById('cartOverlay').classList.toggle('open'); }
 
-// ═══════════════ REGISTER ═══════════════
-function openRegister(){ document.getElementById('registerModal').classList.add('active'); document.getElementById('regName').focus(); }
-function closeRegister(){ document.getElementById('registerModal').classList.remove('active'); }
+// STORE LOGIN MODAL
+function openStoreLogin(e) { if(e) e.preventDefault(); document.getElementById('storeLoginModal').classList.add('active'); document.getElementById('storeLoginUser').focus(); }
+function closeStoreLogin() { document.getElementById('storeLoginModal').classList.remove('active'); }
+document.getElementById('storeLoginModal').addEventListener('click', function(e){ if(e.target===this) closeStoreLogin(); });
+document.getElementById('storeLoginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doStoreLogin(); });
+
+function doStoreLogin() {
+  var user = document.getElementById('storeLoginUser').value.trim();
+  var pass = document.getElementById('storeLoginPass').value;
+  var err = document.getElementById('storeLoginError');
+  err.style.display='none';
+  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})})
+  .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
+  .then(function(res){
+    if(res.status===200&&res.data.ok){
+      var role = res.data.role;
+      if(role==='admin'||role==='analyst'){
+        window.location.href='/test';
+      } else {
+        closeStoreLogin();
+        updateNavAuth(res.data);
+      }
+    } else {
+      err.textContent=res.data.error||'Invalid credentials';
+      err.style.display='block';
+    }
+  })
+  .catch(function(){ err.textContent='Connection error'; err.style.display='block'; });
+}
+
+// REGISTER
+function openRegister(e) { if(e) e.preventDefault(); document.getElementById('registerModal').classList.add('active'); document.getElementById('regName').focus(); }
+function closeRegister() { document.getElementById('registerModal').classList.remove('active'); }
+document.getElementById('registerModal').addEventListener('click', function(e){ if(e.target===this) closeRegister(); });
 
 function checkPwStrength(){
   var pw = document.getElementById('regPass').value;
@@ -386,54 +464,45 @@ function checkPwStrength(){
   if(/[A-Z]/.test(pw)) score++;
   if(/[0-9]/.test(pw)) score++;
   if(/[^A-Za-z0-9]/.test(pw)) score++;
-  var pct = (score/5)*100;
-  var color = pct<=40?'#cc0000':pct<=70?'#cc8800':'#00cc44';
+  var pct=(score/5)*100;
+  var color=pct<=40?'#cc0000':pct<=70?'#cc8800':'#00cc44';
   bar.style.width=pct+'%'; bar.style.background=color;
 }
 
 function doRegister(){
-  var err = document.getElementById('regError');
-  var suc = document.getElementById('regSuccess');
+  var err=document.getElementById('regError');
+  var suc=document.getElementById('regSuccess');
   err.style.display='none'; suc.style.display='none';
-
-  var data = {
-    full_name: document.getElementById('regName').value.trim(),
-    email: document.getElementById('regEmail').value.trim(),
-    organization: document.getElementById('regOrg').value.trim(),
-    username: document.getElementById('regUser').value.trim(),
-    password: document.getElementById('regPass').value,
-    password2: document.getElementById('regPass2').value
+  var data={
+    full_name:document.getElementById('regName').value.trim(),
+    email:document.getElementById('regEmail').value.trim(),
+    organization:document.getElementById('regOrg').value.trim(),
+    username:document.getElementById('regUser').value.trim(),
+    password:document.getElementById('regPass').value,
+    password2:document.getElementById('regPass2').value
   };
-
-  if(!data.full_name||!data.email||!data.username||!data.password){ err.textContent='All fields except organization are required.'; err.style.display='block'; return; }
-  if(data.password.length<8){ err.textContent='Password must be at least 8 characters.'; err.style.display='block'; return; }
-  if(data.password!==data.password2){ err.textContent='Passwords do not match.'; err.style.display='block'; return; }
-  if(!/^[a-zA-Z0-9_]{3,32}$/.test(data.username)){ err.textContent='Username: 3-32 chars, letters/numbers/underscores only.'; err.style.display='block'; return; }
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){ err.textContent='Please enter a valid email address.'; err.style.display='block'; return; }
-
+  if(!data.full_name||!data.email||!data.username||!data.password){err.textContent='All fields except organization are required.';err.style.display='block';return;}
+  if(data.password.length<8){err.textContent='Password must be at least 8 characters.';err.style.display='block';return;}
+  if(data.password!==data.password2){err.textContent='Passwords do not match.';err.style.display='block';return;}
+  if(!/^[a-zA-Z0-9_]{3,32}$/.test(data.username)){err.textContent='Username: 3-32 chars, letters/numbers/underscores only.';err.style.display='block';return;}
   fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
   .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
   .then(function(res){
     if(res.status===201&&res.data.ok){
       suc.textContent='Account created! You can now sign in.';
       suc.style.display='block';
-      document.getElementById('regName').value='';
-      document.getElementById('regEmail').value='';
-      document.getElementById('regOrg').value='';
-      document.getElementById('regUser').value='';
-      document.getElementById('regPass').value='';
-      document.getElementById('regPass2').value='';
+      ['regName','regEmail','regOrg','regUser','regPass','regPass2'].forEach(function(id){document.getElementById(id).value='';});
       document.getElementById('pwBar').style.width='0';
-      setTimeout(function(){ closeRegister(); window.location.href='/'; },2000);
+      setTimeout(function(){ closeRegister(); },2000);
     } else {
       err.textContent=res.data.error||'Registration failed.';
       err.style.display='block';
     }
   })
-  .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
+  .catch(function(){err.textContent='Connection error.';err.style.display='block';});
 }
 
-// ═══════════════ CHECKOUT ═══════════════
+// CHECKOUT
 function openCheckout(){
   if(cart.length===0) return;
   toggleCart();
@@ -442,212 +511,109 @@ function openCheckout(){
   document.getElementById('checkoutAuth').style.display='block';
   document.getElementById('checkoutPayment').style.display='none';
   checkoutUser=null;
-
-  // Build summary
   var html='';
-  for(var i=0;i<cart.length;i++){
-    html+='<div class="order-line"><span class="name">'+cart[i].name+'</span><span class="price">$'+cart[i].price.toFixed(2)+'</span></div>';
-  }
-  html+='<div class="order-total-line"><span class="name">Total</span><span class="price" style="color:#cc0000;">$'+getTotal().toFixed(2)+'</span></div>';
+  for(var i=0;i<cart.length;i++) html+='<div class="order-line"><span class="name">'+cart[i].name+'</span><span class="price">$'+cart[i].price.toFixed(2)+'</span></div>';
+  html+='<div class="order-total-line"><span class="name">Total</span><span class="price" style="color:var(--red);">$'+getTotal().toFixed(2)+'</span></div>';
   document.getElementById('checkoutSummary').innerHTML=html;
   document.getElementById('checkoutModal').classList.add('active');
-
-  // Check if already logged in
   fetch('/api/me').then(function(r){return r.json();}).then(function(d){
-    if(d.authenticated){
-      checkoutUser=d;
-      showPaymentStep();
-    }
+    if(d.authenticated){ checkoutUser=d; showPaymentStep(); }
   }).catch(function(){});
 }
 function closeCheckout(){ document.getElementById('checkoutModal').classList.remove('active'); }
-
 function checkoutLogin(){
   var user=document.getElementById('coUser').value.trim();
   var pass=document.getElementById('coPass').value;
   var err=document.getElementById('coError');
   err.style.display='none';
   if(!user||!pass){err.textContent='Enter username and password.';err.style.display='block';return;}
-
   fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})})
   .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
   .then(function(res){
-    if(res.status===200&&res.data.ok){
-      checkoutUser=res.data;
-      showPaymentStep();
-    } else {
-      err.textContent=res.data.error||'Invalid credentials.';
-      err.style.display='block';
-    }
+    if(res.status===200&&res.data.ok){ checkoutUser=res.data; showPaymentStep(); }
+    else { err.textContent=res.data.error||'Invalid credentials.'; err.style.display='block'; }
   })
-  .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
+  .catch(function(){err.textContent='Connection error.';err.style.display='block';});
 }
-
 function showPaymentStep(){
   document.getElementById('checkoutAuth').style.display='none';
   document.getElementById('checkoutPayment').style.display='block';
   document.getElementById('coWelcome').textContent='Signed in as: '+checkoutUser.username;
   renderPayPalButton();
 }
-
 function renderPayPalButton(){
-  var container = document.getElementById('paypal-button-container');
+  var container=document.getElementById('paypal-button-container');
   container.innerHTML='';
-  var total = getTotal().toFixed(2);
-
-  if(typeof paypal === 'undefined'){
-    container.innerHTML='<p style="color:#cc0000;font-size:12px;text-align:center;">PayPal is loading... If this persists, your browser needs internet access to reach paypal.com</p>'
-      +'<button class="submit-btn" onclick="loadPayPalSDK();setTimeout(renderPayPalButton,3000);" style="background:#333;margin-top:8px;">RETRY PAYPAL</button>'
-      +'<hr style="border:none;border-top:1px solid #222;margin:16px 0;">'
-      +'<p style="font-size:11px;color:#555;text-align:center;">Or use demo checkout (no real payment)</p>'
-      +'<button class="submit-btn" onclick="demoCheckout();" style="margin-top:8px;">DEMO CHECKOUT</button>';
+  var total=getTotal().toFixed(2);
+  if(typeof paypal==='undefined'){
+    container.innerHTML='<p style="font-family:IBM Plex Mono,monospace;color:var(--red);font-size:11px;text-align:center;letter-spacing:1px;">PayPal unavailable in this environment</p>';
     return;
   }
-
   paypal.Buttons({
-    style: { layout:'vertical', color:'gold', shape:'rect', label:'paypal', height:40 },
-    createOrder: function(data, actions){
-      return actions.order.create({
-        purchase_units:[{
-          description:'ARIA Security Products',
-          amount:{ currency_code:'USD', value:total,
-            breakdown:{
-              item_total:{currency_code:'USD',value:total}
-            }
-          },
-          items: cart.map(function(c){ return { name:c.name, unit_amount:{currency_code:'USD',value:c.price.toFixed(2)}, quantity:'1', category: c.type==='subscription'?'DIGITAL_GOODS':'DIGITAL_GOODS' }; })
-        }]
-      });
+    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:40},
+    createOrder:function(data,actions){
+      return actions.order.create({purchase_units:[{description:'ARIA Security Products',amount:{currency_code:'USD',value:total,breakdown:{item_total:{currency_code:'USD',value:total}}},items:cart.map(function(c){return{name:c.name,unit_amount:{currency_code:'USD',value:c.price.toFixed(2)},quantity:'1',category:'DIGITAL_GOODS'};}) }]});
     },
-    onApprove: function(data, actions){
+    onApprove:function(data,actions){
       return actions.order.capture().then(function(details){
-        // Payment captured — send to our backend
-        var orderData = {
-          paypal_order_id: details.id,
-          paypal_payer: details.payer.email_address,
-          paypal_status: details.status,
-          items: cart,
-          total: getTotal(),
-          billing_email: document.getElementById('coBillingEmail').value.trim() || details.payer.email_address
-        };
-
-        fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderData)})
-        .then(function(r){return r.json();})
-        .then(function(d){
-          if(d.ok){
-            showOrderSuccess(d);
-          } else {
-            alert('Order recording failed: '+(d.error||'Unknown error'));
-          }
-        });
+        var orderData={paypal_order_id:details.id,paypal_payer:details.payer.email_address,paypal_status:details.status,items:cart,total:getTotal(),billing_email:document.getElementById('coBillingEmail').value.trim()||details.payer.email_address};
+        fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderData)}).then(function(r){return r.json();}).then(function(d){if(d.ok)showOrderSuccess(d);});
       });
     },
-    onError: function(err){
-      console.error('PayPal error:', err);
-      document.getElementById('coError').textContent='PayPal payment failed. Please try again.';
-      document.getElementById('coError').style.display='block';
-    }
+    onError:function(err){document.getElementById('coError').textContent='PayPal payment failed.';document.getElementById('coError').style.display='block';}
   }).render('#paypal-button-container');
 }
-
 function demoCheckout(){
-  var orderData = {
-    paypal_order_id: 'DEMO-'+Math.random().toString(36).substr(2,8).toUpperCase(),
-    paypal_payer: document.getElementById('coBillingEmail').value.trim()||'demo@aria.local',
-    paypal_status: 'COMPLETED',
-    items: cart,
-    total: getTotal(),
-    billing_email: document.getElementById('coBillingEmail').value.trim()||'demo@aria.local'
-  };
-  fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderData)})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(d.ok){ showOrderSuccess(d); }
-    else { alert('Order failed: '+(d.error||'Unknown error')); }
-  })
-  .catch(function(){ alert('Connection error'); });
+  var orderData={paypal_order_id:'DEMO-'+Math.random().toString(36).substr(2,8).toUpperCase(),paypal_payer:document.getElementById('coBillingEmail').value.trim()||'demo@aria.local',paypal_status:'COMPLETED',items:cart,total:getTotal(),billing_email:document.getElementById('coBillingEmail').value.trim()||'demo@aria.local'};
+  fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderData)}).then(function(r){return r.json();}).then(function(d){if(d.ok)showOrderSuccess(d);else alert('Order failed: '+(d.error||'Unknown'));}).catch(function(){alert('Connection error');});
 }
-
 function showOrderSuccess(d){
   document.getElementById('checkoutForm').style.display='none';
-  var html = '<div class="order-success">'
-    +'<h3>Payment Successful</h3>'
-    +'<div class="order-id">'+d.order_id+'</div>'
-    +'<p>PayPal Transaction: '+d.paypal_order_id+'</p>';
-
-  if(d.api_key){
-    html+='<div class="cred-box"><h4>Your API Credentials</h4>'
-      +'<div class="cred-row"><span class="label">API Key</span><span class="value">'+d.api_key+'</span></div>'
-      +'<div class="cred-row"><span class="label">Access</span><span class="value">'+d.access_level+'</span></div>'
-      +'<p style="font-size:11px;color:#555;margin-top:12px;">Use this API key to access purchased services. View all credentials in your <a href="/portal" style="color:#cc0000;">Account Portal</a>.</p>'
-      +'</div>';
-  }
-
-  if(d.downloads && d.downloads.length > 0){
-    html+='<div class="cred-box"><h4>Your Downloads</h4>';
-    for(var i=0;i<d.downloads.length;i++){
-      html+='<div class="cred-row"><span class="label">'+d.downloads[i].name+'</span>'
-        +'<a href="'+d.downloads[i].url+'" style="color:#cc0000;font-size:12px;">Download</a></div>';
-    }
-    html+='</div>';
-  }
-
-  html+='<p style="margin-top:16px;">Confirmation sent to your billing email. Access your purchases anytime at <a href="/portal" style="color:#cc0000;">/portal</a>.</p>'
-    +'<button class="submit-btn" onclick="closeCheckout();clearCart();" style="margin-top:16px;">CONTINUE SHOPPING</button>'
-    +'</div>';
-
+  var html='<div class="order-success"><h3>PAYMENT SUCCESSFUL</h3><div class="order-id">'+d.order_id+'</div><p>PayPal: '+d.paypal_order_id+'</p>';
+  if(d.api_key) html+='<div class="cred-box"><h4>API Credentials</h4><div class="cred-row"><span class="label">API Key</span><span class="value">'+d.api_key+'</span></div><div class="cred-row"><span class="label">Access</span><span class="value">'+d.access_level+'</span></div><p style="font-size:11px;color:var(--muted);margin-top:12px;">View all credentials in your <a href="/portal" style="color:var(--red);">Account Portal</a>.</p></div>';
+  html+='<button class="submit-btn" onclick="closeCheckout();clearCart();" style="margin-top:16px;">CONTINUE SHOPPING</button></div>';
   document.getElementById('checkoutSuccess').innerHTML=html;
   document.getElementById('checkoutSuccess').style.display='block';
 }
 
-// ═══════════════ AI CHATBOT ═══════════════
+// CHATBOT
 function toggleChat(){ document.getElementById('chatPanel').classList.toggle('open'); if(document.getElementById('chatPanel').classList.contains('open')) document.getElementById('chatInput').focus(); }
-
 function addChatMsg(text,sender){
   var msgs=document.getElementById('chatMessages');
   var div=document.createElement('div');
   div.className='chat-msg '+sender;
-  div.innerHTML='<div class="bubble">'+text+'</div><div class="meta">'+(sender==='bot'?'ARIA BOT':'YOU')+'</div>';
+  div.innerHTML='<div class="bubble">'+text+'</div><div class="meta">'+( sender==='bot'?'ARIA BOT':'YOU')+'</div>';
   msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
 }
-
 function sendChat(){
   var input=document.getElementById('chatInput');
   var text=input.value.trim();
-  if(!text)return;
+  if(!text) return;
   input.value='';
   addChatMsg(text,'user');
-
-  // Typing indicator
-  var msgs=document.getElementById('chatMessages');
-  var typing=document.createElement('div');
-  typing.className='chat-msg bot'; typing.id='typing';
-  typing.innerHTML='<div class="bubble"><span class="typing-dots" style="display:inline-flex;gap:3px;"><span style="width:6px;height:6px;background:#555;border-radius:50%;animation:dp 1.4s infinite;"></span><span style="width:6px;height:6px;background:#555;border-radius:50%;animation:dp 1.4s 0.2s infinite;"></span><span style="width:6px;height:6px;background:#555;border-radius:50%;animation:dp 1.4s 0.4s infinite;"></span></span></div>';
-  msgs.appendChild(typing); msgs.scrollTop=msgs.scrollHeight;
-
   fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})})
   .then(function(r){return r.json();})
-  .then(function(d){ var t=document.getElementById('typing'); if(t)t.remove(); addChatMsg(d.response||'Error processing request.','bot'); })
-  .catch(function(){ var t=document.getElementById('typing'); if(t)t.remove(); addChatMsg('Connection error.','bot'); });
+  .then(function(d){ addChatMsg(d.response||'Error processing request.','bot'); })
+  .catch(function(){ addChatMsg('Connection error.','bot'); });
 }
 
-// ═══════════════ AUTH-AWARE NAV ═══════════════
+// AUTH-AWARE NAV
+function updateNavAuth(d) {
+  var authBtn = document.getElementById('navAuth');
+  var regLink = document.getElementById('navRegister');
+  authBtn.textContent = 'SIGN OUT';
+  authBtn.onclick = function(e){
+    e.preventDefault();
+    fetch('/api/logout',{method:'POST'}).then(function(){ window.location.reload(); });
+  };
+  if(regLink) regLink.style.display='none';
+}
+
 (function(){
   fetch('/api/me').then(function(r){return r.json();}).then(function(d){
-    if(d.authenticated){
-      var authBtn = document.getElementById('navAuth');
-      authBtn.textContent = 'SIGN OUT';
-      authBtn.href = '#';
-      authBtn.onclick = function(e){
-        e.preventDefault();
-        fetch('/api/logout',{method:'POST'}).then(function(){ window.location.reload(); });
-      };
-      var regLink = document.getElementById('navRegister');
-      if(regLink) regLink.style.display='none';
-    }
+    if(d.authenticated) updateNavAuth(d);
   }).catch(function(){});
 })();
 </script>
-<style>@keyframes dp{0%,80%,100%{opacity:0.3;}40%{opacity:1;}}</style>
 </body>
 </html>
