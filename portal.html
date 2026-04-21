@@ -464,7 +464,10 @@ function adminAction(action, username, userId, btn) {
       btn.textContent = 'DONE';
       btn.style.color = '#00cc44';
       if(action === 'ban') btn.closest('tr').style.opacity = '0.4';
-    if(action === 'unban') btn.closest('tr').style.opacity = '1';
+      if(action === 'unban') { btn.closest('tr').style.opacity = '1'; btn.textContent = 'UNBANNED'; }
+      if(action === 'reset' && d.temp_password) {
+        alert('Temp password for ' + username + ':\n\n' + d.temp_password + '\n\nShare with the user.');
+      }
     } else {
       btn.textContent = 'ERR';
       btn.disabled = false;
