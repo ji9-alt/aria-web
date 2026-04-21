@@ -2593,6 +2593,70 @@ def api_create_order():
     return jsonify(result)
 
 
+@app.route("/api/admin/users")
+@require_admin
+def api_admin_users():
+    """Admin: list all registered users."""
+    try:
+        import db
+        users = db.get_all_users() if hasattr(db, 'get_all_users') else []
+        # Fallback: query directly
+        if not users:
+            conn = db.get_conn()
+            cur = conn.cursor()
+            cur.execute("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
+            cols = [c[0] for c in cur.description]
+            users = []
+            for row in cur.fetchall():
+                u = dict(zip(cols, row))
+                if 'created_at' in u and u['created_at']:
+                    try: u['created_at'] = u['created_at'].isoformat()
+                    except: pass
+                users.append(u)
+        return jsonify({"users": users})
+    except Exception as e:
+        return jsonify({"users": [], "error": str(e)})
+
+@app.route("/api/admin/orders")
+@require_admin
+def api_admin_orders():
+    """Admin: list all orders (alias)."""
+    try:
+        import db
+        orders = db.get_orders(200)
+        for o in orders:
+            if 'created_at' in o and o['created_at']:
+                try: o['created_at'] = o['created_at'].isoformat()
+                except: pass
+        return jsonify({"orders": orders})
+    except Exception as e:
+        return jsonify({"orders": [], "error": str(e)})
+
+@app.route("/api/admin/stats")
+@require_admin
+def api_admin_stats():
+    """Admin: system stats."""
+    try:
+        import db
+        stats = {
+            "total_scans": db.get_scan_count() if hasattr(db, 'get_scan_count') else 0,
+            "threats": db.get_threat_count() if hasattr(db, 'get_threat_count') else 0,
+            "iocs": db.get_ioc_count() if hasattr(db, 'get_ioc_count') else 0,
+        }
+        try:
+            conn = db.get_conn()
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM users")
+            stats["total_users"] = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*), COALESCE(SUM(total),0) FROM orders")
+            row = cur.fetchone()
+            stats["total_orders"] = row[0]
+            stats["total_revenue"] = float(row[1])
+        except: pass
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"total_scans":0,"threats":0,"iocs":0,"total_users":0,"total_orders":0,"total_revenue":0,"error":str(e)})
+
 @app.route("/api/orders")
 @require_admin
 def api_list_orders():
