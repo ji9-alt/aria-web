@@ -273,8 +273,7 @@ function buildTabs(role) {
     document.getElementById('pageTitle').innerHTML = 'Admin <span style="color:var(--red)">Dashboard</span>';
     document.getElementById('pageSubtitle').textContent = '// System management and analytics';
   } else {
-    tabs = [{id:'tab-refunds', label:'Refund Requests'},
-      {id:'tab-account', label:'My Account'}];
+    tabs = [{id:'tab-account', label:'My Account'}];
   }
   var bar = document.getElementById('tabBar');
   bar.innerHTML = '';
@@ -385,13 +384,20 @@ function loadAccountData() {
     if(d.orders && d.orders.length > 0) {
       var html = '';
       d.orders.forEach(function(o){
+        var oid = o.order_id || o.id || '';
+        var ostatus = o.status || 'confirmed';
+        var badgeClass = ostatus==='refunded'?'badge-red':ostatus==='pending_refund'?'badge-yellow':'badge-green';
+        var actionBtn = ostatus==='confirmed'
+          ? '<button onclick="requestRefund(\''+oid+'\',this)" style="background:rgba(0,100,200,0.15);border:1px solid rgba(0,100,200,0.4);color:#4488ff;padding:4px 10px;font-size:9px;letter-spacing:1px;cursor:pointer;font-family:IBM Plex Mono,monospace;text-transform:uppercase;">REQUEST REFUND</button>'
+          : '<span style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted);">'+ostatus.toUpperCase()+'</span>';
         html += '<tr>'
-          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);font-weight:600;">'+o.order_id+'</td>'
+          +'<td style="font-family:IBM Plex Mono,monospace;color:var(--red);font-weight:600;">'+oid+'</td>'
           +'<td style="color:var(--muted);font-size:11px;">'+new Date(o.created_at).toLocaleDateString()+'</td>'
           +'<td>'+(o.item_count||1)+' item(s)</td>'
           +'<td style="font-family:IBM Plex Mono,monospace;">$'+parseFloat(o.total).toFixed(2)+'</td>'
-          +'<td><span class="badge badge-green">'+o.status+'</span></td>'
+          +'<td><span class="badge '+badgeClass+'">'+ostatus+'</span></td>'
           +'<td style="color:var(--muted);font-size:11px;">'+(o.paypal_order_id||'N/A')+'</td>'
+          +'<td>'+actionBtn+'</td>'
           +'</tr>';
       });
       document.getElementById('ordersBody').innerHTML = html;
