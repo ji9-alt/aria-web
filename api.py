@@ -2776,3 +2776,30 @@ if __name__ == "__main__":
 
 
 
+
+
+@app.route("/api/admin/users")
+@require_admin
+def api_admin_users():
+    try:
+        import db
+        rows = db.query("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
+        for r in rows:
+            if r.get('created_at'):
+                try: r['created_at'] = r['created_at'].isoformat()
+                except: pass
+        return jsonify({"users": rows or []})
+    except Exception as e:
+        return jsonify({"users": [], "error": str(e)})
+
+
+@app.route("/api/admin/stats")
+@require_admin
+def api_admin_stats():
+    try:
+        import db
+        users = db.query_one("SELECT COUNT(*) as cnt FROM users") or {'cnt': 0}
+        orders = db.query_one("SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as rev FROM orders") or {'cnt': 0, 'rev': 0}
+        return jsonify({"total_users": users['cnt'], "total_orders": orders['cnt'], "total_revenue": float(orders['rev']), "total_scans": db.get_scan_count()})
+    except Exception as e:
+        return jsonify({"total_users":0,"total_orders":0,"total_revenue":0,"total_scans":0,"error":str(e)})
