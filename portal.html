@@ -163,7 +163,7 @@ footer p { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--di
     <div class="section-label">Registered Users</div>
     <div style="background:var(--bg);border:1px solid var(--border);overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+        <thead><tr><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
         <tbody id="usersBody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody>
       </table>
     </div>
@@ -402,6 +402,41 @@ function regenApiKey() {
   if(!confirm('Regenerate API key? The old key will stop working.')) return;
   fetch('/api/my/apikey/regenerate',{method:'POST'}).then(function(r){return r.json();}).then(function(d){
     if(d.api_key) document.getElementById('apiKeyDisplay').textContent = d.api_key;
+  });
+}
+
+
+function adminAction(action, username, userId, btn) {
+  var messages = {
+    ban: 'Ban user ' + username + '? They will be unable to log in.',
+    reset: 'Reset password for ' + username + '? A new temporary password will be set.',
+    refund: 'Issue refund for all orders by ' + username + '?'
+  };
+  if (!confirm(messages[action] || 'Confirm action on ' + username + '?')) return;
+
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  fetch('/api/admin/user-action', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: action, user_id: userId, username: username})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok) {
+      btn.textContent = 'DONE';
+      btn.style.color = '#00cc44';
+      if(action === 'ban') btn.closest('tr').style.opacity = '0.4';
+    } else {
+      btn.textContent = 'ERR';
+      btn.disabled = false;
+      alert('Error: ' + (d.error || 'Unknown error'));
+    }
+  })
+  .catch(function(){
+    btn.textContent = 'FAIL';
+    btn.disabled = false;
   });
 }
 
