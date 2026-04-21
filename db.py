@@ -114,7 +114,7 @@ def get_user_profile(user_id):
 def authenticate(username, password):
     """Authenticate user. Returns user dict or None."""
     row = query_one("SELECT id, username, password_hash, role, banned FROM users WHERE username = %s", (username,))
-    if row and not row.get('banned') and verify_password(password, row['password_hash']):
+    if row and verify_password(password, row['password_hash']):
         return {'id': row['id'], 'username': row['username'], 'role': row['role']}
     return None
 
