@@ -2599,7 +2599,7 @@ def api_create_order():
 def api_admin_users():
     try:
         import db
-        rows = db.query("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
+        rows = db.query("SELECT id, username, role, created_at FROM users ORDER BY created_at DESC LIMIT 200")
         for r in (rows or []):
             if r.get('created_at'):
                 try: r['created_at'] = r['created_at'].isoformat()
